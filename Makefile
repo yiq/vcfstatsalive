@@ -1,13 +1,13 @@
-INCLUDES=-Ivcflib
-LDADDS=-lstdc++
+INCLUDES=-Ivcflib/src -Ivcflib
+LDADDS=-lz -lstdc++
 
 SOURCES=main.cpp
 STATIC_LIBS=vcflib/libvcf.a
 PROGRAM=vcfstatsalive
 
+DISORDER=vcflib/smithwaterman/disorder.c
 
 OBJECTS=$(SOURCES:.cpp=.o)
-
 
 all: $(PROGRAM)
 
@@ -15,10 +15,10 @@ all: $(PROGRAM)
 
 
 $(PROGRAM): $(OBJECTS) $(STATIC_LIBS)
-	$(CC) -o $@ $(OBJECTS) $(STATIC_LIBS) $(LDADDS)
+	$(CXX) -o $@ $(OBJECTS) $(STATIC_LIBS) $(DISORDER) $(LDADDS)
 
 .cpp.o:
-	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+	$(CXX) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
 vcflib/libvcf.a:
 	make -C vcflib libvcf.a
