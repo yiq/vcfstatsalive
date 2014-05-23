@@ -1,5 +1,5 @@
 INCLUDES=-Ivcflib
-
+LDADDS=-lstdc++
 
 SOURCES=main.cpp
 STATIC_LIBS=vcflib/libvcf.a
@@ -15,7 +15,7 @@ all: $(PROGRAM)
 
 
 $(PROGRAM): $(OBJECTS) $(STATIC_LIBS)
-	$(CC) $? $(STATIC_LIBS) -o $@
+	$(CC) -o $@ $(OBJECTS) $(STATIC_LIBS) $(LDADDS)
 
 .cpp.o:
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
