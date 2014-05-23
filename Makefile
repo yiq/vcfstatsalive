@@ -20,10 +20,11 @@ $(PROGRAM): $(OBJECTS) $(STATIC_LIBS)
 .cpp.o:
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
-libvcf/libvcf.a:
+vcflib/libvcf.a:
 	make -C vcflib libvcf.a
 
 clean:
 	rm -rf $(OBJECTS) $(PROGRAM)
+	make -C vcflib clean
 
 .PHONY: clean
