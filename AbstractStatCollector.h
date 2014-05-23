@@ -29,8 +29,6 @@ namespace VcfStatsAlive {
 		protected:
 			StatCollectorPtrVec _children;
 
-			std::string * _sampleName;
-
 			/**
 			 * Process the variant and update statistics
 			 *

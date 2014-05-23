@@ -4,7 +4,6 @@
 #pragma once
 
 #include "AbstractStatCollector.h"
-#include "AbstractChangeMonitor.h"
 
 namespace VcfStatsAlive {
 
@@ -12,13 +11,11 @@ namespace VcfStatsAlive {
 	static std::string const kTsTvRatio = "TsTvRatio";
 
 	typedef std::map<std::string, unsigned int> StatMapT;
-	typedef std::map<std::string, AbstractChangeMonitor<double> *> ChangeMonitorMapT;
 
 	class BasicStatsCollector : public AbstractStatCollector {
 
 		protected:
 			StatMapT _stats;
-			ChangeMonitorMapT _monitors;
 
 			size_t _transitions;
 			size_t _transversions;

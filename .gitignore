@@ -1,3 +1,4 @@
 .DS_Store
 *.o
 vcfstatsalive
+lib/jansson-2.6

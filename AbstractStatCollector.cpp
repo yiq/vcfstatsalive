@@ -2,8 +2,8 @@
 
 using namespace VcfStatsAlive;
 
-AbstractStatCollector::AbstractStatCollector(const std::string* sampleName = NULL) {
-	_children.clear(), _sampleName(sampleName);
+AbstractStatCollector::AbstractStatCollector(const std::string* sampleName) {
+	_children.clear();
 }
 
 AbstractStatCollector::~AbstractStatCollector() {
@@ -37,9 +37,7 @@ void AbstractStatCollector::removeChild(AbstractStatCollector * child) {
 
 void AbstractStatCollector::processVariant(const vcf::Variant& var) {
 
-	if(_sampleName == NULL || var.sampleName.compare(*_sampleName) == 0) {
-		this->processVariantImpl(var);
-	}
+	this->processVariantImpl(var);
 
 	StatCollectorPtrVec::iterator iter;
 	for(iter = _children.begin(); iter != _children.end(); iter++) {

@@ -11,6 +11,7 @@
 
 
 using namespace std;
+using namespace VcfStatsAlive;
 
 static struct option getopt_options[] =
 {
@@ -74,7 +75,6 @@ int main(int argc, char* argv[]) {
 
 	DummyStatsCollector *root = new DummyStatsCollector();
 	root->addChild(new BasicStatsCollector());
-	for(size_t i=0; i<vcfFile.sampleNames.size(); i++) root->addChild(new BasicStatsCollector(vcfFile.sampleNames[i]));
 
 	vcf::Variant var(vcfFile);
 
@@ -88,7 +88,7 @@ int main(int argc, char* argv[]) {
 
 	if(fin != &cin) delete fin;
 
-	
+
 
 	return 0;
 }

@@ -1,32 +1,48 @@
-INCLUDES=-Ivcflib/src -Ivcflib
+INCLUDES=-Ilib/vcflib/src -Ilib/vcflib -Ilib/jansson-2.6/src
 LDADDS=-lz -lstdc++
 
-SOURCES=main.cpp
-STATIC_LIBS=vcflib/libvcf.a
+SOURCES=main.cpp \
+		AbstractStatCollector.cpp \
+		BasicStatsCollector.cpp 
 PROGRAM=vcfstatsalive
+PCH_SOURCE=vcfStatsAliveCommon.hpp
+PCH=$(PCH_SOURCE).gch
 
-DISORDER=vcflib/smithwaterman/disorder.c
+PCH_FLAGS=-include $(PCH_SOURCE)
 
 OBJECTS=$(SOURCES:.cpp=.o)
+
+JANSSON=lib/jansson-2.6/src/.libs/libjansson.a
+VCFLIB=lib/vcflib/libvcf.a
+DISORDER=lib/vcflib/smithwaterman/disorder.c
 
 all: $(PROGRAM)
 
 .PHONY: all
 
-
-$(PROGRAM): $(OBJECTS) $(STATIC_LIBS)
-	$(CXX) -o $@ $(OBJECTS) $(STATIC_LIBS) $(DISORDER) $(LDADDS)
+$(PROGRAM): $(PCH) $(OBJECTS) $(VCFLIB) $(JANSSON)
+	$(CXX) -o $@ $(OBJECTS) $(VCFLIB) $(JANSSON) $(DISORDER) $(LDADDS)
 
 .cpp.o:
-	$(CXX) $(CFLAGS) $(INCLUDES) -c $< -o $@
+	$(CXX) $(CFLAGS) $(INCLUDES) $(PCH_FLAGS) -c $< -o $@
 
-vcflib/libvcf.a:
-	make -C vcflib libvcf.a
+$(PCH): 
+	$(CXX) $(CFLAGS) $(INCLUDES) -x c++-header $(PCH_SOURCE) -Winvalid-pch -o $@
+
+.PHONY: $(PCH)
+
+$(JANSSON):
+	@if [ ! -d lib/jansson-2.6 ]; then cd lib; curl -o - http://www.digip.org/jansson/releases/jansson-2.6.tar.gz | tar -xzf - ; fi
+	@cd lib/jansson-2.6; ./configure --disable-shared --enable-static; make; cd ../..
+
+$(VCFLIB):
+	make -C lib/vcflib libvcf.a
 
 clean:
-	rm -rf $(OBJECTS) $(PROGRAM)
+	rm -rf $(OBJECTS) $(PROGRAM) $(PCH)
 
 clean-dep:
-	make -C vcflib clean
+	make -C lib/vcflib clean
+	make -C lib/jansson-2.6 clean
 
 .PHONY: clean
