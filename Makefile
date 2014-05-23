@@ -25,6 +25,8 @@ vcflib/libvcf.a:
 
 clean:
 	rm -rf $(OBJECTS) $(PROGRAM)
+
+clean-dep:
 	make -C vcflib clean
 
 .PHONY: clean

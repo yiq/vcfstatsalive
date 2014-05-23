@@ -6,6 +6,9 @@
 
 #include "Variant.h"
 
+#include "DummyStatsCollector.h"
+#include "BasicStatsCollector.h"
+
 
 using namespace std;
 
@@ -63,9 +66,15 @@ int main(int argc, char* argv[]) {
 	}
 
 	vcfFile.open(*fin);
-	
 
-	if(vcfFile.is_open()) std::cout<<vcfFile.header<<std::endl;
+	if(!vcfFile.is_open()) {
+		std::cerr<<"Unable to open vcf file / stream"<<std::endl;
+		exit(1);
+	}
+
+	DummyStatsCollector *root = new DummyStatsCollector();
+	root->addChild(new BasicStatsCollector());
+	for(size_t i=0; i<vcfFile.sampleNames.size(); i++) root->addChild(new BasicStatsCollector(vcfFile.sampleNames[i]));
 
 	vcf::Variant var(vcfFile);
 
@@ -74,12 +83,12 @@ int main(int argc, char* argv[]) {
 
 	while(vcfFile.is_open() && !vcfFile.done()) {
 		vcfFile.getNextVariant(var);
-		std::cout<<var.ref<<"->";
-		for(size_t j=0; j<var.alt.size(); j++) std::cout<<var.alt[j]<<",";
-		std::cout<<std::endl;
+		root->processVariant(var);
 	}
 
 	if(fin != &cin) delete fin;
+
+	
 
 	return 0;
 }
