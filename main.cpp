@@ -28,6 +28,8 @@ static struct option getopt_options[] =
 static unsigned int updateRate;
 static unsigned int firstUpdateRate;
 
+void printStatsJansson(AbstractStatCollector* rootStatCollector);
+
 int main(int argc, char* argv[]) {
 
 	string filename;
@@ -78,9 +80,6 @@ int main(int argc, char* argv[]) {
 
 	vcf::Variant var(vcfFile);
 
-
-	for(size_t i=0; i<vcfFile.sampleNames.size(); i++)std::cout<<vcfFile.sampleNames[i]<<std::endl;
-
 	while(vcfFile.is_open() && !vcfFile.done()) {
 		vcfFile.getNextVariant(var);
 		root->processVariant(var);
@@ -88,7 +87,19 @@ int main(int argc, char* argv[]) {
 
 	if(fin != &cin) delete fin;
 
-
+	printStatsJansson(root);
 
 	return 0;
+}
+
+void printStatsJansson(AbstractStatCollector* rootStatCollector) {
+
+	// Create the root object that contains everything
+	json_t * j_root = json_object();
+
+	// Let the root object of the collector tree create Json
+	rootStatCollector->appendJson(j_root);
+
+	// Dump the json
+	cout<<json_dumps(j_root, JSON_COMPACT | JSON_ENSURE_ASCII | JSON_PRESERVE_ORDER)<<endl;
 }

@@ -10,7 +10,7 @@ namespace VcfStatsAlive {
 	static std::string const kTotalRecords = "TotalRecords";
 	static std::string const kTsTvRatio = "TsTvRatio";
 
-	typedef std::map<std::string, unsigned int> StatMapT;
+	typedef std::map<std::string, double> StatMapT;
 
 	class BasicStatsCollector : public AbstractStatCollector {
 
