@@ -85,8 +85,8 @@ void BasicStatsCollector::processVariantImpl(const vcf::Variant& var) {
 	// increment total variant counter
 	++_stats[kTotalRecords];
 
-	std::vector<std::string>::const_iterator altIter = var.alt.cbegin();
-	for(;altIter != var.alt.cend();altIter++) {
+	std::vector<std::string>::const_iterator altIter = var.alt.begin();
+	for(;altIter != var.alt.end();altIter++) {
 		// TsTv Ratio
 		if(_isPurine(var.ref)) {
 			if(_isPurine(*altIter)) {
