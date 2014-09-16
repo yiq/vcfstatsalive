@@ -1,5 +1,23 @@
 #include "BasicStatsCollector.h"
 
+#include <cmath>
+
+namespace VcfStatsAlive {
+	unsigned int StringToUInt(const string &text)
+	{
+		std::stringstream ss(text);
+		unsigned int result;
+		return ss >> result ? result : 0;
+	}
+
+	double StringToDouble(const string &text)
+	{
+		std::stringstream ss(text);
+		double result;
+		return ss >> result ? result : 0;
+	}
+}
+
 using namespace VcfStatsAlive;
 
 static const unsigned int kCMTrailLength = 5;
@@ -17,6 +35,29 @@ inline bool _isPyrimidine(const string& allele) {
 	return false;
 }
 
+inline size_t base2Idx(const string& base) {
+	if(base == "A" || base == "a") return 0;
+	else if (base == "G" || base == "g") return 1;
+	else if (base == "C" || base == "c") return 2;
+	else if (base == "T" || base == "t") return 3;
+	else return 4;
+}
+
+inline char idx2Base(size_t idx) {
+	switch(idx) {
+		case 0:
+			return 'A';
+		case 1:
+			return 'G';
+		case 2:
+			return 'C';
+		case 3:
+			return 'T';
+		default:
+			return ' ';
+	}
+}
+
 BasicStatsCollector::BasicStatsCollector() :
 	AbstractStatCollector(),
 	_transitions(0),
@@ -26,6 +67,9 @@ BasicStatsCollector::BasicStatsCollector() :
 
 	_stats[kTotalRecords] = 0;
 	_stats[kTsTvRatio] = 0;
+
+	memset(m_alleleFreqHist, 0, sizeof(unsigned int) * 50);
+	memset(m_mutationSpec, 0, sizeof(unsigned int) * 4 * 4);
 
 #ifdef DEBUG
 	StatMapT::iterator iter;
@@ -42,27 +86,89 @@ void BasicStatsCollector::processVariantImpl(const vcf::Variant& var) {
 
 	std::vector<std::string>::const_iterator altIter = var.alt.cbegin();
 	for(;altIter != var.alt.cend();altIter++) {
+		// TsTv Ratio
 		if(_isPurine(var.ref)) {
-			if(_isPurine(*altIter)) _transitions++;
-			else _transversions++;
+			if(_isPurine(*altIter)) {
+				_transitions++;
+			}
+			else {
+				_transversions++;
+			}
 		}
 		else {
-			if(_isPurine(*altIter)) _transversions++;
-			else _transitions++;
+			if(_isPurine(*altIter)) {
+				_transversions++;
+			}
+			else {
+				_transitions++;
+			}
 		}
+
+		// Mutation Spectrum
+		size_t firstIdx = base2Idx(var.ref);
+		size_t secondIdx = base2Idx(*altIter);
+
+		if(firstIdx < 4 && secondIdx < 4) {
+			m_mutationSpec[firstIdx][secondIdx]++;
+		}
+
 	}
+
+	// Allele Frequency Histogram
+	int alleleFreqBin;
+	double alleleFreq;
+
+	if(var.info.find("AF") != var.info.end()) {
+		alleleFreq = StringToDouble(var.info.at("AF")[0]);
+	}
+	else {
+		unsigned int depth = StringToUInt(var.info.at("DP")[0]);
+		unsigned int refObsrv = StringToUInt(var.info.at("RO")[0]);
+
+		double alleleFreq = ( depth - refObsrv ) / ((double)depth);
+	}
+
+	alleleFreqBin = (int) ceil(alleleFreq/2.0*100.0) - 1;
+
+	if(alleleFreqBin == -1) alleleFreqBin = 0;
+
+	assert(alleleFreq <= 1);
+	assert(alleleFreq >= 0);
+	
+	m_alleleFreqHist[alleleFreqBin]++;
 }
 
 void BasicStatsCollector::appendJsonImpl(json_t * jsonRootObj) {
 
 	// update some stats
 	_stats[kTsTvRatio] = double(_transitions) / double(_transversions);
-	std::cerr<<_transitions<<", "<<_transversions<<std::endl;
 
 	StatMapT::iterator sIter;
 	for(sIter = _stats.begin(); sIter != _stats.end(); sIter++) {
 		json_object_set_new(jsonRootObj, sIter->first.c_str(), json_real(sIter->second));
 	}
+
+	// Allele Frequency Histogram
+	json_t * j_af_hist = json_object();
+	for(size_t i=0; i<50; i++) {
+		if (m_alleleFreqHist[i] > 0) {
+			std::stringstream labelSS; labelSS << i;
+			json_object_set_new(j_af_hist, labelSS.str().c_str(), json_integer(m_alleleFreqHist[i]));
+		}
+	}
+	json_object_set_new(jsonRootObj, "af_hist", j_af_hist);
+
+	// Mutation spectrum
+	json_t * j_mut_spec = json_object();
+	for(size_t first=0; first<4; first++) {
+		std::stringstream labelSS; labelSS << idx2Base(first);
+		json_t * j_spec_array = json_array();
+		for(size_t second = 0; second<4; second++) {
+			json_array_append_new(j_spec_array, json_integer(m_mutationSpec[first][second]));
+		}
+		json_object_set_new(j_mut_spec, labelSS.str().c_str(), j_spec_array);
+	}
+	json_object_set_new(jsonRootObj, "mut_spec", j_mut_spec);
 
 	bool consensus = true;
 }

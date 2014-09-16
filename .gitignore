@@ -2,3 +2,4 @@
 *.o
 vcfstatsalive
 lib/jansson-2.6
+*.gch

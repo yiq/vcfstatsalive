@@ -1,3 +1,4 @@
+CFLAGS=-g
 INCLUDES=-Ilib/vcflib/src -Ilib/vcflib -Ilib/jansson-2.6/src
 LDADDS=-lz -lstdc++
 
@@ -21,7 +22,7 @@ all: $(PROGRAM)
 .PHONY: all
 
 $(PROGRAM): $(PCH) $(OBJECTS) $(VCFLIB) $(JANSSON)
-	$(CXX) -o $@ $(OBJECTS) $(VCFLIB) $(JANSSON) $(DISORDER) $(LDADDS)
+	$(CXX) $(CFLAGS) -o $@ $(OBJECTS) $(VCFLIB) $(JANSSON) $(DISORDER) $(LDADDS)
 
 .cpp.o:
 	$(CXX) $(CFLAGS) $(INCLUDES) $(PCH_FLAGS) -c $< -o $@
@@ -39,7 +40,7 @@ $(VCFLIB):
 	make -C lib/vcflib libvcf.a
 
 clean:
-	rm -rf $(OBJECTS) $(PROGRAM) $(PCH)
+	rm -rf $(OBJECTS) $(PROGRAM) $(PCH) *.dSYM
 
 clean-dep:
 	make -C lib/vcflib clean

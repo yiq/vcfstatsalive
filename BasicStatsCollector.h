@@ -19,6 +19,8 @@ namespace VcfStatsAlive {
 
 			size_t _transitions;
 			size_t _transversions;
+			unsigned int m_alleleFreqHist[50];
+			unsigned int m_mutationSpec[4][4];
 
 			virtual void processVariantImpl(const vcf::Variant& var);
 			virtual void appendJsonImpl(json_t * jsonRootObj);

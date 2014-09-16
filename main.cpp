@@ -58,36 +58,44 @@ int main(int argc, char* argv[]) {
 
 	vcf::VariantCallFile vcfFile;
 
-	std::istream* fin;
-
-
 	if (argc == 0) {
-		fin = &cin;
+		vcfFile.open(std::cin);
 	}
 	else {
-		fin = new ifstream(*argv);
+		filename = *argv;
+		vcfFile.open(filename);
 	}
-
-	vcfFile.open(*fin);
 
 	if(!vcfFile.is_open()) {
 		std::cerr<<"Unable to open vcf file / stream"<<std::endl;
 		exit(1);
 	}
 
-	DummyStatsCollector *root = new DummyStatsCollector();
-	root->addChild(new BasicStatsCollector());
+	BasicStatsCollector *bsc = new BasicStatsCollector();
 
+
+	unsigned long totalVariants = 0;
 	vcf::Variant var(vcfFile);
 
 	while(vcfFile.is_open() && !vcfFile.done()) {
+
 		vcfFile.getNextVariant(var);
-		root->processVariant(var);
+		bsc->processVariant(var);
+		totalVariants++;
+
+		if((totalVariants > 0 && totalVariants % updateRate == 0) ||
+				(firstUpdateRate > 0 && totalVariants >= firstUpdateRate)) {
+
+			printStatsJansson(bsc);
+
+			// disable first update after it has been fired.
+			if(firstUpdateRate > 0) firstUpdateRate = 0;
+		}
 	}
 
-	if(fin != &cin) delete fin;
+	printStatsJansson(bsc);
 
-	printStatsJansson(root);
+	delete bsc;
 
 	return 0;
 }
