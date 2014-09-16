@@ -70,6 +70,7 @@ BasicStatsCollector::BasicStatsCollector() :
 
 	memset(m_alleleFreqHist, 0, sizeof(unsigned int) * 50);
 	memset(m_mutationSpec, 0, sizeof(unsigned int) * 4 * 4);
+	memset(m_variantTypeDist, 0, sizeof(unsigned int) * VT_SIZE);
 
 #ifdef DEBUG
 	StatMapT::iterator iter;
@@ -112,6 +113,22 @@ void BasicStatsCollector::processVariantImpl(const vcf::Variant& var) {
 			m_mutationSpec[firstIdx][secondIdx]++;
 		}
 
+		// Type Distribution
+		int vt=-1;
+		if(var.ref.size() == 1 && altIter->size() == 1) {
+			vt = VT_SNP;
+		}
+		else if (var.ref.size() == 1 && altIter->size() > 1) {
+			vt = VT_INS;
+		}
+		else if (var.ref.size() > 1 && altIter->size() == 1) {
+			vt = VT_DEL;
+		}
+		else {
+			vt = VT_OTHER;
+		}
+
+		m_variantTypeDist[vt]++;
 	}
 
 	// Allele Frequency Histogram
@@ -124,7 +141,6 @@ void BasicStatsCollector::processVariantImpl(const vcf::Variant& var) {
 	else {
 		unsigned int depth = StringToUInt(var.info.at("DP")[0]);
 		unsigned int refObsrv = StringToUInt(var.info.at("RO")[0]);
-
 		double alleleFreq = ( depth - refObsrv ) / ((double)depth);
 	}
 
@@ -169,6 +185,29 @@ void BasicStatsCollector::appendJsonImpl(json_t * jsonRootObj) {
 		json_object_set_new(j_mut_spec, labelSS.str().c_str(), j_spec_array);
 	}
 	json_object_set_new(jsonRootObj, "mut_spec", j_mut_spec);
+
+	// Mutation type
+	json_t * j_mut_type = json_object();
+	for(size_t vt = 0; vt < VT_SIZE; vt++) {
+		string label;
+		switch(vt) {
+			case VT_SNP:
+				label = "SNP";
+				break;
+			case VT_INS:
+				label = "INS";
+				break;
+			case VT_DEL:
+				label = "DEL";
+				break;
+			default:
+				label = "OTHER";
+				break;
+		}
+
+		json_object_set_new(j_mut_type, label.c_str(), json_integer(m_variantTypeDist[vt]));
+	}
+	json_object_set_new(jsonRootObj, "var_type", j_mut_type);
 
 	bool consensus = true;
 }

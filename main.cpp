@@ -6,9 +6,7 @@
 
 #include "Variant.h"
 
-#include "DummyStatsCollector.h"
 #include "BasicStatsCollector.h"
-
 
 using namespace std;
 using namespace VcfStatsAlive;
