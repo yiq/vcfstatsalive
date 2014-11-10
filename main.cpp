@@ -108,4 +108,6 @@ void printStatsJansson(AbstractStatCollector* rootStatCollector) {
 
 	// Dump the json
 	cout<<json_dumps(j_root, JSON_COMPACT | JSON_ENSURE_ASCII | JSON_PRESERVE_ORDER)<<endl;
+
+	json_decref(j_root);
 }

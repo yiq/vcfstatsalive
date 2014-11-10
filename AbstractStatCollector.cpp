@@ -47,7 +47,7 @@ void AbstractStatCollector::processVariant(const vcf::Variant& var) {
 
 json_t * AbstractStatCollector::appendJson(json_t * jsonRootObj) {
 	if(jsonRootObj == NULL)
-		jsonRootObj = json_object();
+		return NULL;
 
 	this->appendJsonImpl(jsonRootObj);
 	
