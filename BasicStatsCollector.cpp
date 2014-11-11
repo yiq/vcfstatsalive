@@ -58,10 +58,13 @@ inline char idx2Base(size_t idx) {
 	}
 }
 
-BasicStatsCollector::BasicStatsCollector() :
+BasicStatsCollector::BasicStatsCollector(int qualLower, int qualUpper) :
 	AbstractStatCollector(),
 	_transitions(0),
-	_transversions(0) {
+	_transversions(0),
+	kQualHistLowerbound(qualLower),
+	kQualHistUpperbound(qualUpper),
+	m_qualityDist(qualUpper - qualLower + 1 + 2, 0) {
 
 	_stats.clear();
 
@@ -81,56 +84,37 @@ BasicStatsCollector::BasicStatsCollector() :
 
 }
 
-void BasicStatsCollector::processVariantImpl(const vcf::Variant& var) {
-	// increment total variant counter
-	++_stats[kTotalRecords];
-
-	std::vector<std::string>::const_iterator altIter = var.alt.begin();
-	for(;altIter != var.alt.end();altIter++) {
-		// TsTv Ratio
-		if(_isPurine(var.ref)) {
-			if(_isPurine(*altIter)) {
-				_transitions++;
-			}
-			else {
-				_transversions++;
-			}
+void BasicStatsCollector::updateTsTvRatio(const vcf::Variant& var, const string& alt) {
+	// TsTv Ratio
+	if(_isPurine(var.ref)) {
+		if(_isPurine(alt)) {
+			_transitions++;
 		}
 		else {
-			if(_isPurine(*altIter)) {
-				_transversions++;
-			}
-			else {
-				_transitions++;
-			}
+			_transversions++;
 		}
-
-		// Mutation Spectrum
-		size_t firstIdx = base2Idx(var.ref);
-		size_t secondIdx = base2Idx(*altIter);
-
-		if(firstIdx < 4 && secondIdx < 4) {
-			m_mutationSpec[firstIdx][secondIdx]++;
-		}
-
-		// Type Distribution
-		int vt=-1;
-		if(var.ref.size() == 1 && altIter->size() == 1) {
-			vt = VT_SNP;
-		}
-		else if (var.ref.size() == 1 && altIter->size() > 1) {
-			vt = VT_INS;
-		}
-		else if (var.ref.size() > 1 && altIter->size() == 1) {
-			vt = VT_DEL;
-		}
-		else {
-			vt = VT_OTHER;
-		}
-
-		m_variantTypeDist[vt]++;
 	}
+	else {
+		if(_isPurine(alt)) {
+			_transversions++;
+		}
+		else {
+			_transitions++;
+		}
+	}
+}
 
+void BasicStatsCollector::updateMutationSpectrum(const vcf::Variant& var, const string& alt) {
+	// Mutation Spectrum
+	size_t firstIdx = base2Idx(var.ref);
+	size_t secondIdx = base2Idx(alt);
+
+	if(firstIdx < 4 && secondIdx < 4) {
+		m_mutationSpec[firstIdx][secondIdx]++;
+	}
+}
+
+void BasicStatsCollector::updateAlleleFreqHist(const vcf::Variant& var) {
 	// Allele Frequency Histogram
 	int alleleFreqBin;
 	double alleleFreq;
@@ -150,8 +134,76 @@ void BasicStatsCollector::processVariantImpl(const vcf::Variant& var) {
 
 	assert(alleleFreq <= 1);
 	assert(alleleFreq >= 0);
-	
+
 	m_alleleFreqHist[alleleFreqBin]++;
+
+}
+
+void BasicStatsCollector::updateVariantTypeDist(const vcf::Variant& var, const string& alt) {
+	// Type Distribution
+	int vt=-1;
+	if(var.ref.size() == 1 && alt.size() == 1) {
+		vt = VT_SNP;
+	}
+	else if (var.ref.size() == 1 && alt.size() > 1) {
+		vt = VT_INS;
+		updateIndelSizeDist(var, alt);
+	}
+	else if (var.ref.size() > 1 && alt.size() == 1) {
+		vt = VT_DEL;
+		updateIndelSizeDist(var, alt);
+	}
+	else {
+		vt = VT_OTHER;
+	}
+
+	m_variantTypeDist[vt]++;
+}
+
+void BasicStatsCollector::updateQualityDist(const vcf::Variant& var) {
+
+	size_t bin = 0;
+
+	int intQual = int(var.quality);
+
+	if (intQual < kQualHistLowerbound)
+		bin = (kQualHistUpperbound - kQualHistLowerbound + 1);
+	else if (intQual > kQualHistUpperbound + 1)
+		bin = (kQualHistUpperbound - kQualHistLowerbound + 2);
+	else
+		bin = (intQual - kQualHistLowerbound);
+
+	m_qualityDist[bin] += 1;
+
+}
+
+void BasicStatsCollector::updateIndelSizeDist(const vcf::Variant& var, const string& alt) {
+
+	long indelSize = long(alt.size()) - long(var.ref.size());
+	if(m_indelSizeDist.find(indelSize) == m_indelSizeDist.end())
+		m_indelSizeDist[indelSize] = 1;
+	else
+		m_indelSizeDist[indelSize] += 1;
+}
+
+void BasicStatsCollector::processVariantImpl(const vcf::Variant& var) {
+	// increment total variant counter
+	++_stats[kTotalRecords];
+
+	std::vector<std::string>::const_iterator altIter = var.alt.begin();
+	for(;altIter != var.alt.end();altIter++) {
+		
+		updateTsTvRatio(var, *altIter);
+
+		updateMutationSpectrum(var, *altIter);
+
+		updateVariantTypeDist(var, *altIter);
+
+	}
+
+	updateAlleleFreqHist(var);
+	updateQualityDist(var);
+
 }
 
 void BasicStatsCollector::appendJsonImpl(json_t * jsonRootObj) {
@@ -208,6 +260,32 @@ void BasicStatsCollector::appendJsonImpl(json_t * jsonRootObj) {
 		json_object_set_new(j_mut_type, label.c_str(), json_integer(m_variantTypeDist[vt]));
 	}
 	json_object_set_new(jsonRootObj, "var_type", j_mut_type);
+
+	// Quality Distribution
+	json_t * j_qual_dist = json_object();
+	json_object_set_new(j_qual_dist, "qualHistLowerBound", json_integer(kQualHistLowerbound));
+	json_object_set_new(j_qual_dist, "qualHistUpperBound", json_integer(kQualHistUpperbound));
+	json_t *j_qual_dist_bin = json_object();
+	for(size_t i=0; i<m_qualityDist.size() - 2; i++) {
+		if (m_qualityDist[i] == 0) continue;
+		std::stringstream labelSS; labelSS << i;
+		json_object_set_new(j_qual_dist_bin, labelSS.str().c_str(), json_integer(m_qualityDist[i]));
+	}
+	json_object_set_new(j_qual_dist, "regularBins", j_qual_dist_bin);
+	json_object_set_new(j_qual_dist, "lowerBin", json_integer(m_qualityDist[kQualHistUpperbound - kQualHistLowerbound + 1]));
+	json_object_set_new(j_qual_dist, "upperBin", json_integer(m_qualityDist[kQualHistUpperbound - kQualHistLowerbound + 2]));
+
+	json_object_set_new(jsonRootObj, "qual_dist", j_qual_dist);
+
+	// Indel Size Dist
+	json_t * j_indel_size= json_object();
+	for(map<long, size_t>::iterator it = m_indelSizeDist.begin(); it != m_indelSizeDist.end(); it++) {
+		std::stringstream labelSS; labelSS << it->first;
+		json_object_set_new(j_indel_size, labelSS.str().c_str(), json_integer(it->second));
+	}
+	json_object_set_new(jsonRootObj, "indel_size", j_indel_size);
+
+
 
 	bool consensus = true;
 }

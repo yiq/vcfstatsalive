@@ -20,11 +20,15 @@ static struct option getopt_options[] =
 	 * We distinguish them by their indices. */
 	{"update-rate",		required_argument,	0, 'u'},
 	{"first-update",	required_argument,	0, 'f'},
+	{"qual-lower-val",	optional_argument,	0, 'q'},
+	{"qual-upper-val",	optional_argument,	0, 'Q'},
 	{0, 0, 0, 0}
 };
 
 static unsigned int updateRate;
 static unsigned int firstUpdateRate;
+static int qualHistLowerVal;
+static int qualHistUpperVal;
 
 void printStatsJansson(AbstractStatCollector* rootStatCollector);
 
@@ -33,6 +37,8 @@ int main(int argc, char* argv[]) {
 	string filename;
 	updateRate = 1000;
 	firstUpdateRate = 0;
+	qualHistLowerVal = 1;
+	qualHistUpperVal = 200;
 
 	int option_index = 0;
 
@@ -47,8 +53,27 @@ int main(int argc, char* argv[]) {
 			case 'f':
 				firstUpdateRate = strtol(optarg, NULL, 10);
 				break;
-			break;
+			case 'q':
+				qualHistLowerVal = strtol(optarg, NULL, 10);
+				if(qualHistLowerVal < 0) {
+					cerr<<"Invalid quality histogram lowerbound value "<<qualHistLowerVal<<endl;
+					exit(1);
+				}
+				break;
+			case 'Q':
+				qualHistUpperVal = strtol(optarg, NULL, 10);
+				if(qualHistUpperVal < 0) {
+					cerr<<"Invalid quality histogram upperbound value "<<qualHistUpperVal<<endl;
+					exit(1);
+				}
+			default:
+				break;
 		}
+	}
+
+	if(qualHistUpperVal < qualHistLowerVal) {
+		cerr<<"Quality histogram upperbound is lower than lowerbound"<<endl;
+		exit(1);
 	}
 
 	argc -= optind;
@@ -69,7 +94,7 @@ int main(int argc, char* argv[]) {
 		exit(1);
 	}
 
-	BasicStatsCollector *bsc = new BasicStatsCollector();
+	BasicStatsCollector *bsc = new BasicStatsCollector(qualHistLowerVal, qualHistUpperVal);
 
 
 	unsigned long totalVariants = 0;

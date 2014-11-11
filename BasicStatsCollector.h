@@ -28,17 +28,29 @@ namespace VcfStatsAlive {
 			size_t _transitions;
 			size_t _transversions;
 
+			const int kQualHistLowerbound;
+			const int kQualHistUpperbound;
+
 			unsigned int m_alleleFreqHist[50];
-			unsigned int m_qualityDist[255];
+			vector<int> m_qualityDist;
 			unsigned int m_mutationSpec[4][4];
 			unsigned int m_variantTypeDist[VT_SIZE];
+			map<long, size_t> m_indelSizeDist;
 
 
 			virtual void processVariantImpl(const vcf::Variant& var);
 			virtual void appendJsonImpl(json_t * jsonRootObj);
 
 		public:
-			BasicStatsCollector();
+			BasicStatsCollector(int qualLower, int qualUpper);
+
+		private:
+			void updateTsTvRatio(const vcf::Variant& var, const string& alt);
+			void updateMutationSpectrum(const vcf::Variant& var, const string& alt);
+			void updateAlleleFreqHist(const vcf::Variant& var);
+			void updateQualityDist(const vcf::Variant& var);
+			void updateVariantTypeDist(const vcf::Variant& var, const string& alt);
+			void updateIndelSizeDist(const vcf::Variant& var, const string& alt);
 	};
 }
 
