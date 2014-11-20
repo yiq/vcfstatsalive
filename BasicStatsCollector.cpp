@@ -3,18 +3,29 @@
 #include <cmath>
 
 namespace VcfStatsAlive {
-	unsigned int StringToUInt(const string &text)
+	inline unsigned int StringToUInt(const string &text)
 	{
 		std::stringstream ss(text);
 		unsigned int result;
 		return ss >> result ? result : 0;
 	}
 
-	double StringToDouble(const string &text)
+	inline double StringToDouble(const string &text)
 	{
 		std::stringstream ss(text);
 		double result;
 		return ss >> result ? result : 0;
+	}
+
+	template <typename T>
+	inline int valueToBinCloseInterval(T value, T minValue, T maxValue, int bins) {
+		return  floor((value - minValue) / (maxValue - minValue) * bins);
+	}
+
+	template <typename T>
+	inline int valueToBinOpenInterval(T value, T minValue, T maxValue, int bins) {
+		if (value < minValue) return 0;
+		else return valueToBinCloseInterval(value, minValue, maxValue, bins-1) + 1;
 	}
 }
 
@@ -22,6 +33,8 @@ using namespace VcfStatsAlive;
 
 static const unsigned int kCMTrailLength = 5;
 static const double kCMThreshold = 0.001;
+static const double kLogAFLowerBound = -5.0;
+static const double kLogAFUpperBound = 2.0;
 
 inline bool _isPurine(const string& allele) {
 	if(allele.length() != 1) return false;
@@ -58,10 +71,11 @@ inline char idx2Base(size_t idx) {
 	}
 }
 
-BasicStatsCollector::BasicStatsCollector(int qualLower, int qualUpper) :
+BasicStatsCollector::BasicStatsCollector(int qualLower, int qualUpper, bool logScaleAF) :
 	AbstractStatCollector(),
 	_transitions(0),
 	_transversions(0),
+	usingLogScaleAF(logScaleAF),
 	kQualHistLowerbound(qualLower),
 	kQualHistUpperbound(qualUpper),
 	m_qualityDist(qualUpper - qualLower + 1 + 2, 0) {
@@ -71,9 +85,14 @@ BasicStatsCollector::BasicStatsCollector(int qualLower, int qualUpper) :
 	_stats[kTotalRecords] = 0;
 	_stats[kTsTvRatio] = 0;
 
-	memset(m_alleleFreqHist, 0, sizeof(unsigned int) * 50);
+	_alleleFreqBins = logScaleAF ? 52 : 51;
+	m_alleleFreqHist = (unsigned int *)malloc(sizeof(unsigned int) * _alleleFreqBins);
+
+
+	memset(m_alleleFreqHist, 0, sizeof(unsigned int) * _alleleFreqBins);
 	memset(m_mutationSpec, 0, sizeof(unsigned int) * 4 * 4);
 	memset(m_variantTypeDist, 0, sizeof(unsigned int) * VT_SIZE);
+
 
 #ifdef DEBUG
 	StatMapT::iterator iter;
@@ -82,6 +101,10 @@ BasicStatsCollector::BasicStatsCollector(int qualLower, int qualUpper) :
 	}
 #endif
 
+}
+
+BasicStatsCollector::~BasicStatsCollector() {
+	free(m_alleleFreqHist);
 }
 
 void BasicStatsCollector::updateTsTvRatio(const vcf::Variant& var, const string& alt) {
@@ -128,15 +151,22 @@ void BasicStatsCollector::updateAlleleFreqHist(const vcf::Variant& var) {
 		double alleleFreq = ( depth - refObsrv ) / ((double)depth);
 	}
 
-	alleleFreqBin = (int) ceil(alleleFreq/2.0*100.0) - 1;
+	if(alleleFreq == 0) return;
 
-	if(alleleFreqBin == -1) alleleFreqBin = 0;
+	if (usingLogScaleAF) {
+		double logAF = log10(alleleFreq);
+		alleleFreqBin = (int) valueToBinOpenInterval(alleleFreq, kLogAFLowerBound, kLogAFUpperBound, _alleleFreqBins);
+	}
+	else {
+		alleleFreqBin = (int) valueToBinCloseInterval(alleleFreq, 0.0, 1.0, _alleleFreqBins - 1);
+	}
 
-	assert(alleleFreq <= 1);
-	assert(alleleFreq >= 0);
+	//assert(alleleFreq <= 1);
+	//assert(alleleFreq >= 0);
+	assert(alleleFreqBin >= 0);
+	assert(alleleFreqBin < _alleleFreqBins);
 
 	m_alleleFreqHist[alleleFreqBin]++;
-
 }
 
 void BasicStatsCollector::updateVariantTypeDist(const vcf::Variant& var, const string& alt) {
@@ -218,13 +248,22 @@ void BasicStatsCollector::appendJsonImpl(json_t * jsonRootObj) {
 
 	// Allele Frequency Histogram
 	json_t * j_af_hist = json_object();
+	json_t * j_af_hist_bins = json_object();
 	for(size_t i=0; i<50; i++) {
 		if (m_alleleFreqHist[i] > 0) {
 			std::stringstream labelSS; labelSS << i;
-			json_object_set_new(j_af_hist, labelSS.str().c_str(), json_integer(m_alleleFreqHist[i]));
+			json_object_set_new(j_af_hist_bins, labelSS.str().c_str(), json_integer(m_alleleFreqHist[i]));
 		}
 	}
+
+	json_object_set_new(j_af_hist, "usingLogScaleAF", json_boolean(usingLogScaleAF));
+	if (usingLogScaleAF) {
+		json_object_set_new(j_af_hist, "logAFHistLowerBound", json_real(kLogAFLowerBound));
+		json_object_set_new(j_af_hist, "logAFHistUpperBound", json_real(kLogAFUpperBound));
+	}
+	json_object_set_new(j_af_hist, "afHistBins", j_af_hist_bins);
 	json_object_set_new(jsonRootObj, "af_hist", j_af_hist);
+
 
 	// Mutation spectrum
 	json_t * j_mut_spec = json_object();

@@ -31,7 +31,9 @@ namespace VcfStatsAlive {
 			const int kQualHistLowerbound;
 			const int kQualHistUpperbound;
 
-			unsigned int m_alleleFreqHist[50];
+			unsigned int *m_alleleFreqHist;
+			size_t _alleleFreqBins;
+			bool usingLogScaleAF;
 			vector<int> m_qualityDist;
 			unsigned int m_mutationSpec[4][4];
 			unsigned int m_variantTypeDist[VT_SIZE];
@@ -42,7 +44,8 @@ namespace VcfStatsAlive {
 			virtual void appendJsonImpl(json_t * jsonRootObj);
 
 		public:
-			BasicStatsCollector(int qualLower, int qualUpper);
+			BasicStatsCollector(int qualLower, int qualUpper, bool logScaleAF = false);
+			virtual ~BasicStatsCollector();
 
 		private:
 			void updateTsTvRatio(const vcf::Variant& var, const string& alt);

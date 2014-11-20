@@ -22,6 +22,7 @@ static struct option getopt_options[] =
 	{"first-update",	required_argument,	0, 'f'},
 	{"qual-lower-val",	optional_argument,	0, 'q'},
 	{"qual-upper-val",	optional_argument,	0, 'Q'},
+	{"log-scale-af",	optional_argument,	0, 'l'},
 	{0, 0, 0, 0}
 };
 
@@ -39,11 +40,12 @@ int main(int argc, char* argv[]) {
 	firstUpdateRate = 0;
 	qualHistLowerVal = 1;
 	qualHistUpperVal = 200;
+	bool logScaleAF = false;
 
 	int option_index = 0;
 
 	int ch;
-	while((ch = getopt_long (argc, argv, "f:u:", getopt_options, &option_index)) != -1) {
+	while((ch = getopt_long (argc, argv, "f:u:q:Q:l", getopt_options, &option_index)) != -1) {
 		switch(ch) {
 			case 0:
 				break;
@@ -66,6 +68,10 @@ int main(int argc, char* argv[]) {
 					cerr<<"Invalid quality histogram upperbound value "<<qualHistUpperVal<<endl;
 					exit(1);
 				}
+				break;
+			case 'l':
+				logScaleAF = true;
+				break;
 			default:
 				break;
 		}
@@ -94,7 +100,7 @@ int main(int argc, char* argv[]) {
 		exit(1);
 	}
 
-	BasicStatsCollector *bsc = new BasicStatsCollector(qualHistLowerVal, qualHistUpperVal);
+	BasicStatsCollector *bsc = new BasicStatsCollector(qualHistLowerVal, qualHistUpperVal, logScaleAF);
 
 
 	unsigned long totalVariants = 0;
