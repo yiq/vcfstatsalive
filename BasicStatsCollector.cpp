@@ -34,7 +34,7 @@ using namespace VcfStatsAlive;
 static const unsigned int kCMTrailLength = 5;
 static const double kCMThreshold = 0.001;
 static const double kLogAFLowerBound = -5.0;
-static const double kLogAFUpperBound = 2.0;
+static const double kLogAFUpperBound = 0.0;
 
 inline bool _isPurine(const string& allele) {
 	if(allele.length() != 1) return false;
@@ -155,7 +155,7 @@ void BasicStatsCollector::updateAlleleFreqHist(const vcf::Variant& var) {
 
 	if (usingLogScaleAF) {
 		double logAF = log10(alleleFreq);
-		alleleFreqBin = (int) valueToBinOpenInterval(alleleFreq, kLogAFLowerBound, kLogAFUpperBound, _alleleFreqBins);
+		alleleFreqBin = (int) valueToBinOpenInterval(logAF, kLogAFLowerBound, kLogAFUpperBound, _alleleFreqBins - 1);
 	}
 	else {
 		alleleFreqBin = (int) valueToBinCloseInterval(alleleFreq, 0.0, 1.0, _alleleFreqBins - 1);
