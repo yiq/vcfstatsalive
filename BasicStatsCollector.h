@@ -10,10 +10,10 @@ namespace VcfStatsAlive {
 	static std::string const kTotalRecords = "TotalRecords";
 	static std::string const kTsTvRatio = "TsTvRatio";
 
-	typedef std::map<std::string, double> StatMapT;
+	using StatMapT = std::map<std::string, double>;
 
 	typedef enum {
-		VT_SNP= 0,
+		VT_SNP = 0,
 		VT_INS,
 		VT_DEL,
 		VT_OTHER,
@@ -38,8 +38,8 @@ namespace VcfStatsAlive {
 			map<long, size_t> m_indelSizeDist;
 
 
-			virtual void processVariantImpl(const vcf::Variant& var);
-			virtual void appendJsonImpl(json_t * jsonRootObj);
+			virtual void processVariantImpl(const vcf::Variant& var) override;
+			virtual void appendJsonImpl(json_t * jsonRootObj) override;
 
 		public:
 			BasicStatsCollector(int qualLower, int qualUpper);

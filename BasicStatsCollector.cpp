@@ -73,7 +73,7 @@ BasicStatsCollector::BasicStatsCollector(int qualLower, int qualUpper) :
 
 	memset(m_alleleFreqHist, 0, sizeof(unsigned int) * 50);
 	memset(m_mutationSpec, 0, sizeof(unsigned int) * 4 * 4);
-	memset(m_variantTypeDist, 0, sizeof(unsigned int) * VT_SIZE);
+	memset(m_variantTypeDist, 0, sizeof(unsigned int) * static_cast<unsigned int>(VT_SIZE));
 
 #ifdef DEBUG
 	StatMapT::iterator iter;
@@ -141,7 +141,7 @@ void BasicStatsCollector::updateAlleleFreqHist(const vcf::Variant& var) {
 
 void BasicStatsCollector::updateVariantTypeDist(const vcf::Variant& var, const string& alt) {
 	// Type Distribution
-	int vt=-1;
+	VariantTypeT vt;
 	if(var.ref.size() == 1 && alt.size() == 1) {
 		vt = VT_SNP;
 	}
@@ -157,7 +157,7 @@ void BasicStatsCollector::updateVariantTypeDist(const vcf::Variant& var, const s
 		vt = VT_OTHER;
 	}
 
-	m_variantTypeDist[vt]++;
+	m_variantTypeDist[static_cast<unsigned int>(vt)]++;
 }
 
 void BasicStatsCollector::updateQualityDist(const vcf::Variant& var) {
@@ -190,15 +190,10 @@ void BasicStatsCollector::processVariantImpl(const vcf::Variant& var) {
 	// increment total variant counter
 	++_stats[kTotalRecords];
 
-	std::vector<std::string>::const_iterator altIter = var.alt.begin();
-	for(;altIter != var.alt.end();altIter++) {
-		
+	for(auto altIter = var.alt.cbegin(); altIter != var.alt.cend();altIter++) {
 		updateTsTvRatio(var, *altIter);
-
 		updateMutationSpectrum(var, *altIter);
-
 		updateVariantTypeDist(var, *altIter);
-
 	}
 
 	updateAlleleFreqHist(var);

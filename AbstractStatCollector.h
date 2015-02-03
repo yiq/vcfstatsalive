@@ -4,12 +4,15 @@
 #pragma once
 
 #include "Variant.h"
+#include <memory>
 
 namespace VcfStatsAlive {
 
 	class AbstractStatCollector;
+	
+	using StatCollectorPtr = std::shared_ptr<AbstractStatCollector>;
 
-	typedef std::vector<AbstractStatCollector *> StatCollectorPtrVec;
+	using StatCollectorPtrVec = std::vector<StatCollectorPtr>;
 
 	/**
 	 * The base class for all statistics collectors
@@ -63,14 +66,14 @@ namespace VcfStatsAlive {
 			 * 
 			 * @param child The child collector to be added
 			 */
-			void addChild(AbstractStatCollector * child);
+			void addChild(StatCollectorPtr child);
 
 			/**
 			 * Remove a statistics collector from the children list of the current collector
 			 *
 			 * @param child The child collector to be removed
 			 */
-			void removeChild(AbstractStatCollector * child);
+			void removeChild(StatCollectorPtr child);
 
 			/**
 			 * Process an variant by the collector tree
