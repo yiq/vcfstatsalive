@@ -1,4 +1,4 @@
-CFLAGS=-g -std=c++98
+CFLAGS=-g -std=c++11
 INCLUDES=-Ilib/vcflib/src -Ilib/vcflib -Ilib/jansson-2.6/src
 LDADDS=-lz -lstdc++
 

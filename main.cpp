@@ -4,6 +4,8 @@
 #include <string>
 #include <fstream>
 
+#include <memory>
+
 #include "Variant.h"
 
 #include "BasicStatsCollector.h"
@@ -14,10 +16,6 @@ using namespace VcfStatsAlive;
 static struct option getopt_options[] =
 {
 	/* These options set a flag. */
-	//{"verbose", no_argument,       &verbose_flag, 1},
-	//{"brief",   no_argument,       &verbose_flag, 0},
-	/* These options don't set a flag.
-	 * We distinguish them by their indices. */
 	{"update-rate",		required_argument,	0, 'u'},
 	{"first-update",	required_argument,	0, 'f'},
 	{"qual-lower-val",	optional_argument,	0, 'q'},
