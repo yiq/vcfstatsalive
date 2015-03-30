@@ -123,6 +123,7 @@ void BasicStatsCollector::updateAlleleFreqHist(const vcf::Variant& var) {
 		alleleFreq = StringToDouble(var.info.at("AF")[0]);
 	}
 	else {
+		if(var.info.find("DP") == var.info.end() || var.info.find("RO") == var.info.end()) return;
 		unsigned int depth = StringToUInt(var.info.at("DP")[0]);
 		unsigned int refObsrv = StringToUInt(var.info.at("RO")[0]);
 		double alleleFreq = ( depth - refObsrv ) / ((double)depth);
