@@ -194,15 +194,10 @@ void BasicStatsCollector::processVariantImpl(const vcf::Variant& var) {
 	// increment total variant counter
 	++_stats[kTotalRecords];
 
-	long altCount = 0;
 	for(auto altIter = var.alt.cbegin(); altIter != var.alt.cend();altIter++) {
-		// Only first alt is included in tstv counts
-		if (altCount == 0) {
-			updateTsTvRatio(var, *altIter);
-		}
+		updateTsTvRatio(var, *altIter);
 		updateMutationSpectrum(var, *altIter);
 		updateVariantTypeDist(var, *altIter);
-		altCount++;
 	}
 
 	updateAlleleFreqHist(var);
