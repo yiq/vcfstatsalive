@@ -108,23 +108,26 @@ BasicStatsCollector::~BasicStatsCollector() {
 }
 
 void BasicStatsCollector::updateTsTvRatio(const vcf::Variant& var, const string& alt) {
-	// TsTv Ratio
-	if(_isPurine(var.ref)) {
-		if(_isPurine(alt)) {
-			_transitions++;
+	// TsTv Ratio - Only evaluate SNPs 
+	if(var.ref.size() == 1 && alt.size() == 1 && var.ref != alt && var.ref != "." && alt != ".") {
+		if(_isPurine(var.ref)) {
+			if(_isPurine(alt)) {
+				_transitions++;
+			}
+			else if(_isPyrimidine(alt)){
+				_transversions++;
+			} 
 		}
 		else {
-			_transversions++;
-		}
+			if(_isPurine(alt)) {
+				_transversions++;
+			}
+			else if(_isPyrimidine(alt)){
+				_transitions++;
+			} 
+		}	
 	}
-	else {
-		if(_isPurine(alt)) {
-			_transversions++;
-		}
-		else {
-			_transitions++;
-		}
-	}
+
 }
 
 void BasicStatsCollector::updateMutationSpectrum(const vcf::Variant& var, const string& alt) {
