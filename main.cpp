@@ -21,6 +21,7 @@ static struct option getopt_options[] =
 	{"qual-lower-val",	optional_argument,	0, 'q'},
 	{"qual-upper-val",	optional_argument,	0, 'Q'},
 	{"log-scale-af",	optional_argument,	0, 'l'},
+	{"batch",			optional_argument,	0, 'b'},
 	{0, 0, 0, 0}
 };
 
@@ -39,6 +40,7 @@ int main(int argc, char* argv[]) {
 	qualHistLowerVal = 1;
 	qualHistUpperVal = 200;
 	bool logScaleAF = false;
+	bool batch = true;
 
 	int option_index = 0;
 
@@ -69,6 +71,9 @@ int main(int argc, char* argv[]) {
 				break;
 			case 'l':
 				logScaleAF = true;
+				break;
+			case 'b':
+				batch = true;
 				break;
 			default:
 				break;
@@ -110,8 +115,8 @@ int main(int argc, char* argv[]) {
 		bsc->processVariant(var);
 		totalVariants++;
 
-		if((totalVariants > 0 && totalVariants % updateRate == 0) ||
-				(firstUpdateRate > 0 && totalVariants >= firstUpdateRate)) {
+		if( !batch && ((totalVariants > 0 && totalVariants % updateRate == 0) ||
+				(firstUpdateRate > 0 && totalVariants >= firstUpdateRate))) {
 
 			printStatsJansson(bsc);
 
