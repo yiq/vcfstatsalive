@@ -6,12 +6,13 @@
 
 #include <memory>
 
-#include "Variant.h"
+#include <execinfo.h>
 
 #include "BasicStatsCollector.h"
 
 using namespace std;
 using namespace VcfStatsAlive;
+using namespace htslib;
 
 static struct option getopt_options[] =
 {
@@ -29,9 +30,25 @@ static unsigned int firstUpdateRate;
 static int qualHistLowerVal;
 static int qualHistUpperVal;
 
+void handler(int sig) {
+  void *array[10];
+  size_t size;
+
+  // get void*'s for all entries on the stack
+  size = backtrace(array, 10);
+
+  // print out all the frames to stderr
+  fprintf(stderr, "Error: signal %d:\n", sig);
+  backtrace_symbols_fd(array, size, STDERR_FILENO);
+  exit(1);
+}
+
 void printStatsJansson(AbstractStatCollector* rootStatCollector);
 
 int main(int argc, char* argv[]) {
+
+	signal(SIGSEGV, handler);   // install our handler
+
 
 	string filename;
 	updateRate = 1000;
@@ -84,13 +101,17 @@ int main(int argc, char* argv[]) {
 	argv += optind;
 
 	vcf::VariantCallFile vcfFile;
+	htsFile *fpVcf;
 
 	if (argc == 0) {
 		vcfFile.open(std::cin);
+		fpVcf = hts_open("_", "r");
 	}
 	else {
 		filename = *argv;
 		vcfFile.open(filename);
+		printf("Opening file '%s'\n", filename.c_str());
+		fpVcf = hts_open(filename.c_str(), "r");
 	}
 
 	if(!vcfFile.is_open()) {

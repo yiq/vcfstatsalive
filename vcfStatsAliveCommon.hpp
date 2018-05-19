@@ -28,6 +28,18 @@
 // Jansson JSON manipulation library
 #include <jansson.h>
 
+// Include htslib
+namespace htslib
+{
+#include <htslib/hts.h>
+#include <htslib/vcf.h>
+#include <htslib/kstring.h>
+#include <htslib/kseq.h>
+}
+
+#define kstring_t htslib::kstring_t
+#include "Variant.h"
+
 
 // Logging facility for Debug
 #ifdef RELEASE

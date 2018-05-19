@@ -226,7 +226,7 @@ class IntegrationTests(unittest.TestCase):
         last_line = None
 
         for l in proc.stdout:
-            last_line = "{0}".format(l)
+            last_line = l.decode()
 
         out, err = proc.communicate()
         
