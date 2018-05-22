@@ -20,7 +20,7 @@ class IntegrationTests(unittest.TestCase):
     bad_results_file = '/Users/timoc/source/frameshift/vcfstatsalive/bad-results.json'
 
     assets = {
-            'platinum-exome.vcf.gz' : 'platinum-exome.json',
+            'platinum-exome.vcf.gz' : 'platinum-exome.htsapi.json',
             }
             
 
@@ -39,45 +39,22 @@ class IntegrationTests(unittest.TestCase):
     #-----------------------------------------------------------------------------
 
     def test_top_level(self):
-        IntegrationTests._run_test_on(
-                self._test_top_level,
-                IntegrationTests.platinum_results_file,
-                IntegrationTests.bad_results_file)
+        IntegrationTests._run_test_on(self._test_top_level)
   
     def test_allele_frequency(self):
-        IntegrationTests._run_test_on(
-                self._regress_allele_frequency,
-                IntegrationTests.platinum_results_file,
-                IntegrationTests.bad_results_file,
-                key='af_hist')
+        IntegrationTests._run_test_on(self._regress_allele_frequency, key='af_hist')
     
     def test_mutation_spectrum(self):
-        IntegrationTests._run_test_on(
-                self._regress_mutation_spectrum,
-                IntegrationTests.platinum_results_file,
-                IntegrationTests.bad_results_file,
-                key='mut_spec')
+        IntegrationTests._run_test_on(self._regress_mutation_spectrum, key='mut_spec')
 
     def test_varian_types(self):
-        IntegrationTests._run_test_on(
-                self._regress_variant_types,
-                IntegrationTests.platinum_results_file,
-                IntegrationTests.bad_results_file,
-                key='var_type')
+        IntegrationTests._run_test_on(self._regress_variant_types, key='var_type')
     
     def test_quality_distribution(self):
-        IntegrationTests._run_test_on(
-                self._regress_quality_distribution,
-                IntegrationTests.platinum_results_file,
-                IntegrationTests.bad_results_file,
-                key='qual_dist')
+        IntegrationTests._run_test_on(self._regress_quality_distribution, key='qual_dist')
 
     def test_indel_size(self):
-        IntegrationTests._run_test_on(
-                self._regress_indel_size,
-                IntegrationTests.platinum_results_file,
-                IntegrationTests.bad_results_file,
-                key='indel_size')
+        IntegrationTests._run_test_on( self._regress_indel_size, key='indel_size')
 
     #-----------------------------------------------------------------------------
     # Internal test implementation
@@ -198,7 +175,7 @@ class IntegrationTests(unittest.TestCase):
     #-----------------------------------------------------------------------------
 
     @staticmethod
-    def _run_test_on(method, expected_json_file, observed_json_file, key=None):
+    def _run_test_on(method, key=None):
         for k, v in IntegrationTests.assets.items():
 
             expected_json = IntegrationTests._get_json('data/' + v)

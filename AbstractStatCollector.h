@@ -35,9 +35,9 @@ namespace VcfStatsAlive {
 			 * Process the variant and update statistics
 			 *
 			 * @param var The variant read
-			 * @param refVector The reference the read is aligned to
+			 * @param htsVar The hstlib variant record
 			 */
-			virtual void processVariantImpl(const vcf::Variant& var) = 0;
+			virtual void processVariantImpl(const vcf::Variant& var, htslib::bcf1_t* htsVar) = 0;
 
 			/**
 			 * Append statistics as json
@@ -82,9 +82,9 @@ namespace VcfStatsAlive {
 			 * collectors.
 			 *
 			 * @param var The variant read
-			 * @param refVector The reference the read is aligned to
+			 * @param htsVar The htslib variant 
 			 */
-			void processVariant(const vcf::Variant& var);
+			void processVariant(const vcf::Variant& var, htslib::bcf1_t* htsVar);
 
 			/**
 			 * Create json of the collector tree

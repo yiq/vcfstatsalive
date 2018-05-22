@@ -40,7 +40,7 @@ namespace VcfStatsAlive {
 			map<long, size_t> m_indelSizeDist;
 
 
-			virtual void processVariantImpl(const vcf::Variant& var) override;
+			virtual void processVariantImpl(const vcf::Variant& var, htslib::bcf1_t* htsVar) override;
 			virtual void appendJsonImpl(json_t * jsonRootObj) override;
 
 		public:
@@ -48,7 +48,7 @@ namespace VcfStatsAlive {
 			virtual ~BasicStatsCollector();
 
 		private:
-			void updateTsTvRatio(const vcf::Variant& var, const string& alt);
+			void updateTsTvRatio(const vcf::Variant& var, const string& alt, htslib::bcf1_t* htsVar, int altIndex);
 			void updateMutationSpectrum(const vcf::Variant& var, const string& alt);
 			void updateAlleleFreqHist(const vcf::Variant& var);
 			void updateQualityDist(const vcf::Variant& var);

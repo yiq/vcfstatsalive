@@ -36,15 +36,15 @@ static const double kCMThreshold = 0.001;
 static const double kLogAFLowerBound = -5.0;
 static const double kLogAFUpperBound = 0.0;
 
-inline bool _isPurine(const string& allele) {
-	if(allele.length() != 1) return false;
-	if(allele == "A" || allele == "a" || allele == "G" || allele == "g") return true;
+inline bool _isPurine(const char allele) {
+	//if(allele.length() != 1) return false;
+	if(allele == 'A' || allele == 'a' || allele == 'G' || allele == 'g') return true;
 	return false;
 }
 
-inline bool _isPyrimidine(const string& allele) {
-	if(allele.length() != 1) return false;
-	if(allele == "C" || allele == "c" || allele == "T" || allele == "t") return true;
+inline bool _isPyrimidine(const char allele) {
+	//if(allele.length() != 1) return false;
+	if(allele == 'C' || allele == 'c' || allele == 'T' || allele == 't') return true;
 	return false;
 }
 
@@ -107,22 +107,27 @@ BasicStatsCollector::~BasicStatsCollector() {
 	free(m_alleleFreqHist);
 }
 
-void BasicStatsCollector::updateTsTvRatio(const vcf::Variant& var, const string& alt) {
+void BasicStatsCollector::updateTsTvRatio(const vcf::Variant& var, const string& alt, htslib::bcf1_t* htsVar, int altIndex) {
 	// TsTv Ratio - Only evaluate SNPs 
-	if(var.ref.size() == 1 && alt.size() == 1 && var.ref != alt && var.ref != "." && alt != ".") {
-		if(_isPurine(var.ref)) {
-			if(_isPurine(alt)) {
+
+	char ref = htsVar->d.allele[0][0];
+	char htsAlt = htsVar->d.allele[altIndex][0];
+	// if(htsVar->d.allele[0][1] == 0 && htsVar->d.allele[altIndex][1] == 0 && htsVar->d.allele[0][0] != '.' && htsVar->d.allele[altIndex][0] != '.') {
+	// Use above call to produce identical results to vcflib
+	if(bcf_is_snp(htsVar)) {
+		if(_isPurine(ref)) {
+			if(_isPurine(htsAlt)) {
 				_transitions++;
 			}
-			else if(_isPyrimidine(alt)){
+			else if(_isPyrimidine(htsAlt)){
 				_transversions++;
 			} 
 		}
 		else {
-			if(_isPurine(alt)) {
+			if(_isPurine(htsAlt)) {
 				_transversions++;
 			}
-			else if(_isPyrimidine(alt)){
+			else if(_isPyrimidine(htsAlt)){
 				_transitions++;
 			} 
 		}	
@@ -220,14 +225,18 @@ void BasicStatsCollector::updateIndelSizeDist(const vcf::Variant& var, const str
 		m_indelSizeDist[indelSize] += 1;
 }
 
-void BasicStatsCollector::processVariantImpl(const vcf::Variant& var) {
+void BasicStatsCollector::processVariantImpl(const vcf::Variant& var, htslib::bcf1_t* htsVar) {
+
+
 	// increment total variant counter
 	++_stats[kTotalRecords];
 
+	int altIndex = 1;
 	for(auto altIter = var.alt.cbegin(); altIter != var.alt.cend();altIter++) {
-		updateTsTvRatio(var, *altIter);
+		updateTsTvRatio(var, *altIter, htsVar, altIndex);
 		updateMutationSpectrum(var, *altIter);
 		updateVariantTypeDist(var, *altIter);
+		altIndex++;
 	}
 
 	updateAlleleFreqHist(var);
