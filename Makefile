@@ -1,4 +1,5 @@
-CFLAGS=-g -std=c++11
+CUSTOM=
+CFLAGS=-g -std=c++11 $(CUSTOM)
 INCLUDES=-Ilib/vcflib/src -Ilib/vcflib -Ilib/jansson-2.6/src -Ilib/htslib/
 LDADDS=-lz -lstdc++
 

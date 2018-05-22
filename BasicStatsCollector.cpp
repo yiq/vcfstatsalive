@@ -48,11 +48,11 @@ inline bool _isPyrimidine(const char allele) {
 	return false;
 }
 
-inline size_t base2Idx(const string& base) {
-	if(base == "A" || base == "a") return 0;
-	else if (base == "G" || base == "g") return 1;
-	else if (base == "C" || base == "c") return 2;
-	else if (base == "T" || base == "t") return 3;
+inline size_t base2Idx(const char base) {
+	if(base == 'A' || base == 'a') return 0;
+	else if (base == 'G' || base == 'g') return 1;
+	else if (base == 'C' || base == 'c') return 2;
+	else if (base == 'T' || base == 't') return 3;
 	else return 4;
 }
 
@@ -112,9 +112,12 @@ void BasicStatsCollector::updateTsTvRatio(const vcf::Variant& var, const string&
 
 	char ref = htsVar->d.allele[0][0];
 	char htsAlt = htsVar->d.allele[altIndex][0];
-	// if(htsVar->d.allele[0][1] == 0 && htsVar->d.allele[altIndex][1] == 0 && htsVar->d.allele[0][0] != '.' && htsVar->d.allele[altIndex][0] != '.') {
-	// Use above call to produce identical results to vcflib
-	if(bcf_is_snp(htsVar)) {
+#ifdef VCFLIB_PARITY
+	if(htsVar->d.allele[0][1] == 0 && htsVar->d.allele[altIndex][1] == 0 && htsVar->d.allele[0][0] != '.' && htsVar->d.allele[altIndex][0] != '.')
+#else
+	if(bcf_is_snp(htsVar)) 
+#endif
+    {
 		if(_isPurine(ref)) {
 			if(_isPurine(htsAlt)) {
 				_transitions++;
@@ -135,10 +138,16 @@ void BasicStatsCollector::updateTsTvRatio(const vcf::Variant& var, const string&
 
 }
 
-void BasicStatsCollector::updateMutationSpectrum(const vcf::Variant& var, const string& alt) {
+void BasicStatsCollector::updateMutationSpectrum(const vcf::Variant& var, const string& alt, htslib::bcf1_t* htsVar, int altIndex) {
 	// Mutation Spectrum
-	size_t firstIdx = base2Idx(var.ref);
-	size_t secondIdx = base2Idx(alt);
+#ifdef VCFLIB_PARITY
+	if(htsVar->d.allele[0][1] != 0 || htsVar->d.allele[altIndex][1] != 0) return;
+#else
+	if(!bcf_is_snp(htsVar)) return;
+#endif
+
+	size_t firstIdx = base2Idx(htsVar->d.allele[0][0]);
+	size_t secondIdx = base2Idx(htsVar->d.allele[altIndex][0]);
 
 	if(firstIdx < 4 && secondIdx < 4) {
 		m_mutationSpec[firstIdx][secondIdx]++;
@@ -226,17 +235,15 @@ void BasicStatsCollector::updateIndelSizeDist(const vcf::Variant& var, const str
 }
 
 void BasicStatsCollector::processVariantImpl(const vcf::Variant& var, htslib::bcf1_t* htsVar) {
-
-
 	// increment total variant counter
 	++_stats[kTotalRecords];
 
-	int altIndex = 1;
-	for(auto altIter = var.alt.cbegin(); altIter != var.alt.cend();altIter++) {
+	auto altIter = var.alt.cbegin();
+	for(int altIndex = 1; altIndex < htsVar->n_allele; altIndex++) {
 		updateTsTvRatio(var, *altIter, htsVar, altIndex);
-		updateMutationSpectrum(var, *altIter);
+		updateMutationSpectrum(var, *altIter, htsVar, altIndex);
 		updateVariantTypeDist(var, *altIter);
-		altIndex++;
+		altIter++;
 	}
 
 	updateAlleleFreqHist(var);
