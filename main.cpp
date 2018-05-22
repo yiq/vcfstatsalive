@@ -132,25 +132,17 @@ int main(int argc, char* argv[]) {
     bcf_hdr_t* hdr = bcf_hdr_read(fpVcf);
     bcf1_t* line = bcf_init();
 
-	while(vcfFile.is_open() && !vcfFile.done()) {
-
+    while(bcf_read(fpVcf, hdr, line) == 0) {
 		vcfFile.getNextVariant(var);
-		int r = bcf_read(fpVcf, hdr, line);
-		if (r != 0) {
-			std::cerr<<"Last htslib vcf record, totalVariants = " << totalVariants << std::endl;
-		}
 
-		r = bcf_unpack(line, BCF_UN_STR); // Unpack alternates and info block
-		if (r != 0) {
+		// Unpack alternates and info block
+		if (bcf_unpack(line, BCF_UN_STR) != 0) {
 			std::cerr<<"Error unpacking"<<std::endl;
 		}
 
 		bsc->processVariant(var, line);
-		//printf("chr%d:%d-%d\n", line->rid, line->pos, line->pos + line->rlen);
-
 		
 		totalVariants++;
-
 
 		if((totalVariants > 0 && totalVariants % updateRate == 0) ||
 				(firstUpdateRate > 0 && totalVariants >= firstUpdateRate)) {

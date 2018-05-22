@@ -48,12 +48,12 @@ namespace VcfStatsAlive {
 			virtual ~BasicStatsCollector();
 
 		private:
-			void updateTsTvRatio(const vcf::Variant& var, const string& alt, htslib::bcf1_t* htsVar, int altIndex);
-			void updateMutationSpectrum(const vcf::Variant& var, const string& alt, htslib::bcf1_t* htsVar, int altIndex);
+			void updateTsTvRatio(htslib::bcf1_t* htsVar, int altIndex);
+			void updateMutationSpectrum(htslib::bcf1_t* htsVar, int altIndex);
 			void updateAlleleFreqHist(const vcf::Variant& var);
 			void updateQualityDist(const vcf::Variant& var);
-			void updateVariantTypeDist(const vcf::Variant& var, const string& alt);
-			void updateIndelSizeDist(const vcf::Variant& var, const string& alt);
+			void updateVariantTypeDist(htslib::bcf1_t* htsVar, int altIndex);
+			void updateIndelSizeDist(int refLength, int altLength);
 	};
 }
 
