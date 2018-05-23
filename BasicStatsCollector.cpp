@@ -156,20 +156,30 @@ void BasicStatsCollector::updateMutationSpectrum(htslib::bcf1_t* htsVar, int alt
 	}
 }
 
-void BasicStatsCollector::updateAlleleFreqHist(const vcf::Variant& var) {
+void BasicStatsCollector::updateAlleleFreqHist(htslib::bcf_hdr_t* hdr, htslib::bcf1_t* htsVar) {
 	// Allele Frequency Histogram
 	int alleleFreqBin;
-	double alleleFreq;
+	double alleleFreq = 0;
+	int count = 0;
 
-	if(var.info.find("AF") != var.info.end()) {
-		alleleFreq = StringToDouble(var.info.at("AF")[0]);
+	float* pfAlleleFreq = NULL;
+	if(bcf_get_info_float(hdr, htsVar, "AF", &pfAlleleFreq, &count) >= 0 && count > 0) {
+		alleleFreq = *pfAlleleFreq;
 	}
 	else {
-		if(var.info.find("DP") == var.info.end() || var.info.find("RO") == var.info.end()) return;
-		unsigned int depth = StringToUInt(var.info.at("DP")[0]);
-		unsigned int refObsrv = StringToUInt(var.info.at("RO")[0]);
-		alleleFreq = ( depth - refObsrv ) / ((double)depth);
+		int* piDepth = NULL;
+		int* piRefObsrv = NULL;
+		count = 0;
+		if(bcf_get_info_int32(hdr, htsVar, "DP", &piDepth, &count) >= 0 && count > 0 && 
+		   bcf_get_info_int32(hdr, htsVar, "RO", &piRefObsrv, &count) >= 0 && count > 0) {
+					alleleFreq = ( *piDepth - *piRefObsrv ) / ((double)*piDepth);
+		}
+
+		free(piRefObsrv);
+		free(piDepth);
 	}
+
+	free(pfAlleleFreq);
 
 	if(alleleFreq == 0) return;
 
@@ -241,7 +251,7 @@ void BasicStatsCollector::updateIndelSizeDist(int refLength, int altLength) {
 		m_indelSizeDist[indelSize] += 1;
 }
 
-void BasicStatsCollector::processVariantImpl(const vcf::Variant& var, htslib::bcf1_t* htsVar) {
+void BasicStatsCollector::processVariantImpl(const vcf::Variant& var, htslib::bcf_hdr_t* hdr, htslib::bcf1_t* htsVar) {
 	// increment total variant counter
 	++_stats[kTotalRecords];
 
@@ -251,7 +261,7 @@ void BasicStatsCollector::processVariantImpl(const vcf::Variant& var, htslib::bc
 		updateVariantTypeDist(htsVar, altIndex);
 	}
 
-	updateAlleleFreqHist(var);
+	updateAlleleFreqHist(hdr, htsVar);
 	updateQualityDist(var);
 
 }

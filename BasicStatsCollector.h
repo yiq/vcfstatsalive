@@ -40,7 +40,7 @@ namespace VcfStatsAlive {
 			map<long, size_t> m_indelSizeDist;
 
 
-			virtual void processVariantImpl(const vcf::Variant& var, htslib::bcf1_t* htsVar) override;
+			virtual void processVariantImpl(const vcf::Variant& var, htslib::bcf_hdr_t* hdr, htslib::bcf1_t* htsVar) override;
 			virtual void appendJsonImpl(json_t * jsonRootObj) override;
 
 		public:
@@ -50,7 +50,7 @@ namespace VcfStatsAlive {
 		private:
 			void updateTsTvRatio(htslib::bcf1_t* htsVar, int altIndex);
 			void updateMutationSpectrum(htslib::bcf1_t* htsVar, int altIndex);
-			void updateAlleleFreqHist(const vcf::Variant& var);
+			void updateAlleleFreqHist(htslib::bcf_hdr_t* hdr, htslib::bcf1_t* htsVar);
 			void updateQualityDist(const vcf::Variant& var);
 			void updateVariantTypeDist(htslib::bcf1_t* htsVar, int altIndex);
 			void updateIndelSizeDist(int refLength, int altLength);

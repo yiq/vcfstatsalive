@@ -140,7 +140,7 @@ int main(int argc, char* argv[]) {
 			std::cerr<<"Error unpacking"<<std::endl;
 		}
 
-		bsc->processVariant(var, line);
+		bsc->processVariant(var, hdr, line);
 		
 		totalVariants++;
 
