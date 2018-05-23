@@ -24,10 +24,10 @@ all: $(PROGRAM)
 .PHONY: all
 
 $(PROGRAM): $(PCH) $(OBJECTS) $(JANSSON) $(HTSLIB)
-	$(CXX) $(CFLAGS) -v -o $@ $(OBJECTS) $(JANSSON) $(LDADDS) $(HTSLIB) -lcurl -lbz2 -llzma
+	$(CXX) $(CFLAGS) -v -o $@ $(OBJECTS) $(JANSSON) $(HTSLIB) $(LDADDS) -lcurl -lbz2 -llzma
 
 .cpp.o:
-	$(CXX) $(CFLAGS) $(INCLUDES) $(PCH_FLAGS)  $(HTSLIB) -c $< -o $@
+	$(CXX) $(CFLAGS) $(INCLUDES) $(PCH_FLAGS) -c $< -o $@
 
 $(PCH): 
 	$(CXX) $(CFLAGS) $(INCLUDES) -x c++-header $(PCH_SOURCE) -Winvalid-pch -o $@
@@ -48,7 +48,6 @@ clean:
 	rm -rf $(OBJECTS) $(PROGRAM) $(PCH) *.dSYM
 
 clean-dep:
-	make -C lib/vcflib clean
 	make -C lib/jansson-2.6 clean
 	make -C lib/htslib clean
 
