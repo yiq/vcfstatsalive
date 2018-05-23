@@ -15,16 +15,14 @@ PCH_FLAGS=-include $(PCH_SOURCE)
 OBJECTS=$(SOURCES:.cpp=.o)
 
 JANSSON=lib/jansson-2.6/src/.libs/libjansson.a
-VCFLIB=lib/vcflib/libvcf.a
-HTSLIB=lib/htslib/libhts.dylib
-DISORDER=lib/vcflib/smithwaterman/disorder.c
+HTSLIB=lib/htslib/libhts.a
 
 all: $(PROGRAM)
 
 .PHONY: all
 
-$(PROGRAM): $(PCH) $(OBJECTS) $(VCFLIB) $(JANSSON) $(HTSLIB)
-	$(CXX) $(CFLAGS)  $(HTSLIB) -v -o $@ $(OBJECTS) $(VCFLIB) $(JANSSON) $(DISORDER) $(LDADDS) -lcurl -lbz2 -llzma
+$(PROGRAM): $(PCH) $(OBJECTS) $(JANSSON) $(HTSLIB)
+	$(CXX) $(CFLAGS) -v -o $@ $(OBJECTS) $(JANSSON) $(LDADDS) $(HTSLIB) -lcurl -lbz2 -llzma
 
 .cpp.o:
 	$(CXX) $(CFLAGS) $(INCLUDES) $(PCH_FLAGS)  $(HTSLIB) -c $< -o $@
@@ -38,15 +36,11 @@ $(JANSSON):
 	@if [ ! -d lib/jansson-2.6 ]; then cd lib; curl -o - http://www.digip.org/jansson/releases/jansson-2.6.tar.gz | tar -xzf - ; fi
 	@cd lib/jansson-2.6; ./configure --disable-shared --enable-static; make; cd ../..
 
-$(VCFLIB):
-	make -C lib/vcflib libvcf.a
-
 $(HTSLIB): 
 	cd lib/htslib && autoheader 
 	cd lib/htslib && autoconf
 	cd lib/htslib && ./configure
-	make -C lib/htslib libhts.dylib
-	make -C lib/htslib install
+	make -C lib/htslib libhts.a
 
 clean:
 	rm -rf $(OBJECTS) $(PROGRAM) $(PCH) *.dSYM

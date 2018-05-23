@@ -34,13 +34,13 @@ namespace VcfStatsAlive {
 			unsigned int *m_alleleFreqHist;
 			size_t _alleleFreqBins;
 			bool usingLogScaleAF;
-			vector<int> m_qualityDist;
+			std::vector<int> m_qualityDist;
 			unsigned int m_mutationSpec[4][4];
 			unsigned int m_variantTypeDist[VT_SIZE];
-			map<long, size_t> m_indelSizeDist;
+			std::map<long, size_t> m_indelSizeDist;
 
 
-			virtual void processVariantImpl(const vcf::Variant& var, htslib::bcf_hdr_t* hdr, htslib::bcf1_t* htsVar) override;
+			virtual void processVariantImpl(htslib::bcf_hdr_t* hdr, htslib::bcf1_t* var) override;
 			virtual void appendJsonImpl(json_t * jsonRootObj) override;
 
 		public:
@@ -48,11 +48,11 @@ namespace VcfStatsAlive {
 			virtual ~BasicStatsCollector();
 
 		private:
-			void updateTsTvRatio(htslib::bcf1_t* htsVar, int altIndex);
-			void updateMutationSpectrum(htslib::bcf1_t* htsVar, int altIndex);
-			void updateAlleleFreqHist(htslib::bcf_hdr_t* hdr, htslib::bcf1_t* htsVar);
-			void updateQualityDist(const vcf::Variant& var);
-			void updateVariantTypeDist(htslib::bcf1_t* htsVar, int altIndex);
+			void updateTsTvRatio(htslib::bcf1_t* var, int altIndex, bool isSnp);
+			void updateMutationSpectrum(htslib::bcf1_t* var, int altIndex, bool isSnp);
+			void updateAlleleFreqHist(htslib::bcf_hdr_t* hdr, htslib::bcf1_t* var);
+			void updateQualityDist(float qual);
+			void updateVariantTypeDist(htslib::bcf1_t* var, int altIndex, int refLength);
 			void updateIndelSizeDist(int refLength, int altLength);
 	};
 }

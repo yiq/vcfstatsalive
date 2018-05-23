@@ -2,6 +2,8 @@
 
 #include <cmath>
 
+using namespace std;
+
 namespace VcfStatsAlive {
 	inline unsigned int StringToUInt(const string &text)
 	{
@@ -107,16 +109,15 @@ BasicStatsCollector::~BasicStatsCollector() {
 	free(m_alleleFreqHist);
 }
 
-void BasicStatsCollector::updateTsTvRatio(htslib::bcf1_t* htsVar, int altIndex) {
+void BasicStatsCollector::updateTsTvRatio(htslib::bcf1_t* var, int altIndex, bool isSnp) {
 	// TsTv Ratio - Only evaluate SNPs 
 
-	char ref = htsVar->d.allele[0][0];
-	char htsAlt = htsVar->d.allele[altIndex][0];
+	char ref = var->d.allele[0][0];
+	char htsAlt = var->d.allele[altIndex][0];
 #ifdef VCFLIB_PARITY
-	if(htsVar->d.allele[0][1] == 0 && htsVar->d.allele[altIndex][1] == 0 && htsVar->d.allele[0][0] != '.' && htsVar->d.allele[altIndex][0] != '.')
+	if(var->d.allele[0][1] == 0 && var->d.allele[altIndex][1] == 0 && var->d.allele[0][0] != '.' && var->d.allele[altIndex][0] != '.')
 #else
-	// TODO: Refactor bcf_is_snp to caller to avoid repeated calls
-	if(bcf_is_snp(htsVar)) 
+	if(isSnp) 
 #endif
     {
 		if(_isPurine(ref)) {
@@ -139,39 +140,38 @@ void BasicStatsCollector::updateTsTvRatio(htslib::bcf1_t* htsVar, int altIndex) 
 
 }
 
-void BasicStatsCollector::updateMutationSpectrum(htslib::bcf1_t* htsVar, int altIndex) {
+void BasicStatsCollector::updateMutationSpectrum(htslib::bcf1_t* var, int altIndex, bool isSnp) {
 	// Mutation Spectrum
 #ifdef VCFLIB_PARITY
-	if(htsVar->d.allele[0][1] != 0 || htsVar->d.allele[altIndex][1] != 0) return;
+	if(var->d.allele[0][1] != 0 || var->d.allele[altIndex][1] != 0) return;
 #else
-	// TODO: Refactor bcf_is_snp to caller
-	if(!bcf_is_snp(htsVar)) return;
+	if(!isSnp) return;
 #endif
 
-	size_t firstIdx = base2Idx(htsVar->d.allele[0][0]);
-	size_t secondIdx = base2Idx(htsVar->d.allele[altIndex][0]);
+	size_t firstIdx = base2Idx(var->d.allele[0][0]);
+	size_t secondIdx = base2Idx(var->d.allele[altIndex][0]);
 
 	if(firstIdx < 4 && secondIdx < 4) {
 		m_mutationSpec[firstIdx][secondIdx]++;
 	}
 }
 
-void BasicStatsCollector::updateAlleleFreqHist(htslib::bcf_hdr_t* hdr, htslib::bcf1_t* htsVar) {
+void BasicStatsCollector::updateAlleleFreqHist(htslib::bcf_hdr_t* hdr, htslib::bcf1_t* var) {
 	// Allele Frequency Histogram
 	int alleleFreqBin;
 	double alleleFreq = 0;
 	int count = 0;
 
 	float* pfAlleleFreq = NULL;
-	if(bcf_get_info_float(hdr, htsVar, "AF", &pfAlleleFreq, &count) >= 0 && count > 0) {
+	if(bcf_get_info_float(hdr, var, "AF", &pfAlleleFreq, &count) >= 0 && count > 0) {
 		alleleFreq = *pfAlleleFreq;
 	}
 	else {
 		int* piDepth = NULL;
 		int* piRefObsrv = NULL;
 		count = 0;
-		if(bcf_get_info_int32(hdr, htsVar, "DP", &piDepth, &count) >= 0 && count > 0 && 
-		   bcf_get_info_int32(hdr, htsVar, "RO", &piRefObsrv, &count) >= 0 && count > 0) {
+		if(bcf_get_info_int32(hdr, var, "DP", &piDepth, &count) >= 0 && count > 0 && 
+		   bcf_get_info_int32(hdr, var, "RO", &piRefObsrv, &count) >= 0 && count > 0) {
 					alleleFreq = ( *piDepth - *piRefObsrv ) / ((double)*piDepth);
 		}
 
@@ -199,12 +199,10 @@ void BasicStatsCollector::updateAlleleFreqHist(htslib::bcf_hdr_t* hdr, htslib::b
 	m_alleleFreqHist[alleleFreqBin]++;
 }
 
-void BasicStatsCollector::updateVariantTypeDist(htslib::bcf1_t* htsVar, int altIndex) {
+void BasicStatsCollector::updateVariantTypeDist(htslib::bcf1_t* var, int altIndex, int refLength) {
 	// Type Distribution
 	VariantTypeT vt;
-	// TODO: Refactor reference allele length to caller.
-	int refLength = strlen(htsVar->d.allele[0]);
-	int altLength = strlen(htsVar->d.allele[altIndex]);
+	int altLength = strlen(var->d.allele[altIndex]);
 
 	// Do not use bcf_is_snp here because it enforces its logic across all alternates.
 	if(refLength == 1 && altLength == 1) {
@@ -225,11 +223,11 @@ void BasicStatsCollector::updateVariantTypeDist(htslib::bcf1_t* htsVar, int altI
 	m_variantTypeDist[static_cast<unsigned int>(vt)]++;
 }
 
-void BasicStatsCollector::updateQualityDist(const vcf::Variant& var) {
+void BasicStatsCollector::updateQualityDist(float qual) {
 
 	size_t bin = 0;
 
-	int intQual = int(var.quality);
+	int intQual = int(qual);
 
 	if (intQual < kQualHistLowerbound)
 		bin = (kQualHistUpperbound - kQualHistLowerbound + 1);
@@ -251,18 +249,21 @@ void BasicStatsCollector::updateIndelSizeDist(int refLength, int altLength) {
 		m_indelSizeDist[indelSize] += 1;
 }
 
-void BasicStatsCollector::processVariantImpl(const vcf::Variant& var, htslib::bcf_hdr_t* hdr, htslib::bcf1_t* htsVar) {
+void BasicStatsCollector::processVariantImpl(htslib::bcf_hdr_t* hdr, htslib::bcf1_t* var) {
 	// increment total variant counter
 	++_stats[kTotalRecords];
 
-	for(int altIndex = 1; altIndex < htsVar->n_allele; altIndex++) {
-		updateTsTvRatio(htsVar, altIndex);
-		updateMutationSpectrum(htsVar, altIndex);
-		updateVariantTypeDist(htsVar, altIndex);
+	bool isSnp = bcf_is_snp(var);
+	int refLength = strlen(var->d.allele[0]);
+
+	for(int altIndex = 1; altIndex < var->n_allele; altIndex++) {
+		updateTsTvRatio(var, altIndex, isSnp);
+		updateMutationSpectrum(var, altIndex, isSnp);
+		updateVariantTypeDist(var, altIndex, refLength);
 	}
 
-	updateAlleleFreqHist(hdr, htsVar);
-	updateQualityDist(var);
+	updateAlleleFreqHist(hdr, var);
+	updateQualityDist(var->qual);
 
 }
 

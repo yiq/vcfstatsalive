@@ -37,10 +37,6 @@ namespace htslib
 #include <htslib/kseq.h>
 }
 
-#define kstring_t htslib::kstring_t
-#include "Variant.h"
-
-
 // Logging facility for Debug
 #ifdef RELEASE
 namespace VcfStatsAlive {

@@ -100,26 +100,17 @@ int main(int argc, char* argv[]) {
 	argc -= optind;
 	argv += optind;
 
-	vcf::VariantCallFile vcfFile;
-	htsFile *fpVcf;
+	htsFile *fp;
 
 	if (argc == 0) {
-		vcfFile.open(std::cin);
-		fpVcf = hts_open("_", "r");
+		fp = hts_open("_", "r");
 	}
 	else {
 		filename = *argv;
-		vcfFile.open(filename);
-		printf("Opening file '%s'\n", filename.c_str());
-		fpVcf = hts_open(filename.c_str(), "r");
+		fp = hts_open(filename.c_str(), "r");
 	}
 
-	if(!vcfFile.is_open()) {
-		std::cerr<<"Unable to open vcf file / stream (vcflib)"<<std::endl;
-		exit(1);
-	}
-
-	if (fpVcf == NULL) {
+	if (fp == NULL) {
 		std::cerr<<"Unable to open vcf file / stream"<<std::endl;
 		exit(1);
 	}
@@ -127,20 +118,18 @@ int main(int argc, char* argv[]) {
 	BasicStatsCollector *bsc = new BasicStatsCollector(qualHistLowerVal, qualHistUpperVal, logScaleAF);
 
 	unsigned long totalVariants = 0;
-	vcf::Variant var(vcfFile);
 
-    bcf_hdr_t* hdr = bcf_hdr_read(fpVcf);
-    bcf1_t* line = bcf_init();
+	bcf_hdr_t* hdr = bcf_hdr_read(fp);
+	bcf1_t* line = bcf_init();
 
-    while(bcf_read(fpVcf, hdr, line) == 0) {
-		vcfFile.getNextVariant(var);
+	while(bcf_read(fp, hdr, line) == 0) {
 
 		// Unpack alternates and info block
 		if (bcf_unpack(line, BCF_UN_STR) != 0) {
 			std::cerr<<"Error unpacking"<<std::endl;
 		}
 
-		bsc->processVariant(var, hdr, line);
+		bsc->processVariant(hdr, line);
 		
 		totalVariants++;
 
