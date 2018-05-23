@@ -28,7 +28,8 @@ class IntegrationTests(unittest.TestCase):
     def setUpClass(cls):
         print("Processing variants to generate test data")
 
-        shutil.rmtree('output/')
+        if os.path.exists("output/"):
+            shutil.rmtree('output/')
         os.mkdir('output/')
 
         for k, v in IntegrationTests.assets.items():
