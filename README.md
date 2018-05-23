@@ -5,6 +5,7 @@ A utility that calculates statistics off a vcf stream, reporting at a given
 interval in json
 
 Note: Please use the stable branch, as the master branch contains untested changes.
+Note: autoconf/autoheader must be installed in order to build htslib dependency
 
 Usage
 =====
