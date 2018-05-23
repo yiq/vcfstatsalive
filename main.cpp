@@ -12,7 +12,6 @@
 
 using namespace std;
 using namespace VcfStatsAlive;
-using namespace htslib;
 
 static struct option getopt_options[] =
 {
@@ -48,7 +47,6 @@ void printStatsJansson(AbstractStatCollector* rootStatCollector);
 int main(int argc, char* argv[]) {
 
 	signal(SIGSEGV, handler);   // install our handler
-
 
 	string filename;
 	updateRate = 1000;

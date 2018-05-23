@@ -40,7 +40,7 @@ namespace VcfStatsAlive {
 			std::map<long, size_t> m_indelSizeDist;
 
 
-			virtual void processVariantImpl(htslib::bcf_hdr_t* hdr, htslib::bcf1_t* var) override;
+			virtual void processVariantImpl(bcf_hdr_t* hdr, bcf1_t* var) override;
 			virtual void appendJsonImpl(json_t * jsonRootObj) override;
 
 		public:
@@ -48,11 +48,11 @@ namespace VcfStatsAlive {
 			virtual ~BasicStatsCollector();
 
 		private:
-			void updateTsTvRatio(htslib::bcf1_t* var, int altIndex, bool isSnp);
-			void updateMutationSpectrum(htslib::bcf1_t* var, int altIndex, bool isSnp);
-			void updateAlleleFreqHist(htslib::bcf_hdr_t* hdr, htslib::bcf1_t* var);
+			void updateTsTvRatio(bcf1_t* var, int altIndex, bool isSnp);
+			void updateMutationSpectrum(bcf1_t* var, int altIndex, bool isSnp);
+			void updateAlleleFreqHist(bcf_hdr_t* hdr, bcf1_t* var);
 			void updateQualityDist(float qual);
-			void updateVariantTypeDist(htslib::bcf1_t* var, int altIndex, int refLength);
+			void updateVariantTypeDist(bcf1_t* var, int altIndex, int refLength);
 			void updateIndelSizeDist(int refLength, int altLength);
 	};
 }

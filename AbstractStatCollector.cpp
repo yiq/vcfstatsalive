@@ -35,7 +35,7 @@ void AbstractStatCollector::removeChild(StatCollectorPtr child) {
 	_children.erase(loc);
 }
 
-void AbstractStatCollector::processVariant(htslib::bcf_hdr_t* hdr, htslib::bcf1_t* var) {
+void AbstractStatCollector::processVariant(bcf_hdr_t* hdr, bcf1_t* var) {
 
 	this->processVariantImpl(hdr, var);
 

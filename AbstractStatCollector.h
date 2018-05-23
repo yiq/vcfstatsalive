@@ -37,7 +37,7 @@ namespace VcfStatsAlive {
 			 * @param hdr The vcf file header information
 			 * @param var The hstlib variant record
 			 */
-			virtual void processVariantImpl(htslib::bcf_hdr_t* hdr, htslib::bcf1_t* var) = 0;
+			virtual void processVariantImpl(bcf_hdr_t* hdr, bcf1_t* var) = 0;
 
 			/**
 			 * Append statistics as json
@@ -84,7 +84,7 @@ namespace VcfStatsAlive {
 			 * @param hdr The vcf file header information
 			 * @param var The htslib variant 
 			 */
-			void processVariant(htslib::bcf_hdr_t* hdr, htslib::bcf1_t* var);
+			void processVariant(bcf_hdr_t* hdr, bcf1_t* var);
 
 			/**
 			 * Create json of the collector tree
