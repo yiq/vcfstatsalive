@@ -3,7 +3,14 @@ CUSTOM=
 
 CFLAGS=-g -std=c++11 $(CUSTOM)
 INCLUDES=-Ilib/vcflib/src -Ilib/vcflib -Ilib/jansson-2.6/src -Ilib/htslib/
-LDADDS=-lz -lstdc++
+
+LDADDS=-lz -lstdc++ -lbz2 -llzma
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S), Darwin)
+	LDADDS+=-lcurl
+else
+	LDADDS+=-lpthread
+endif
 
 SOURCES=main.cpp \
 		AbstractStatCollector.cpp \
@@ -24,7 +31,7 @@ all: $(PROGRAM)
 .PHONY: all
 
 $(PROGRAM): $(PCH) $(OBJECTS) $(JANSSON) $(HTSLIB)
-	$(CXX) $(CFLAGS) -v -o $@ $(OBJECTS) $(JANSSON) $(HTSLIB) $(LDADDS) -lcurl -lbz2 -llzma
+	$(CXX) $(CFLAGS) -v -o $@ $(OBJECTS) $(JANSSON) $(HTSLIB) $(LDADDS)
 
 .cpp.o:
 	$(CXX) $(CFLAGS) $(INCLUDES) $(PCH_FLAGS) -c $< -o $@
