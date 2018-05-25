@@ -6,6 +6,8 @@ interval in json
 
 Note: Please use the stable branch, as the master branch contains untested changes.
 Note: autoconf/autoheader must be installed in order to build htslib dependency
+Note: On linux systems, use 'sudo make' rather than 'make'. Also export LD_LIBRARY_PATH="/usr/local/lib" before 
+running so that htslib can be found for dynamic loading.
 
 Usage
 =====
