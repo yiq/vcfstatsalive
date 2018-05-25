@@ -7,10 +7,9 @@ INCLUDES=-Ilib/vcflib/src -Ilib/vcflib -Ilib/jansson-2.6/src -Ilib/htslib/
 LDADDS=-lz -lstdc++ 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S), Darwin)
-	LDADDS+=-lcurl
 	LIBEX=dylib
 else
-	LDADDS+=-lpthread
+	LDADDS+=-lhts
 	LIBEX=so
 endif
 
