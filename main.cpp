@@ -84,7 +84,7 @@ int main(int argc, char* argv[]) {
 	htsFile *fp;
 
 	if (argc == 0) {
-		fp = hts_open("_", "r");
+		fp = hts_open("-", "r");
 	}
 	else {
 		filename = *argv;

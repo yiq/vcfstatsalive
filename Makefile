@@ -4,12 +4,14 @@ CUSTOM=
 CFLAGS=-g -std=c++11 $(CUSTOM)
 INCLUDES=-Ilib/vcflib/src -Ilib/vcflib -Ilib/jansson-2.6/src -Ilib/htslib/
 
-LDADDS=-lz -lstdc++ -lbz2 -llzma
+LDADDS=-lz -lstdc++ 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S), Darwin)
 	LDADDS+=-lcurl
+	LIBEX=dylib
 else
 	LDADDS+=-lpthread
+	LIBEX=so
 endif
 
 SOURCES=main.cpp \
@@ -24,14 +26,14 @@ PCH_FLAGS=-include $(PCH_SOURCE)
 OBJECTS=$(SOURCES:.cpp=.o)
 
 JANSSON=lib/jansson-2.6/src/.libs/libjansson.a
-HTSLIB=lib/htslib/libhts.a
+HTSLIB=lib/htslib/libhts.$(LIBEX)
 
 all: $(PROGRAM)
 
 .PHONY: all
 
 $(PROGRAM): $(PCH) $(OBJECTS) $(JANSSON) $(HTSLIB)
-	$(CXX) $(CFLAGS) -v -o $@ $(OBJECTS) $(JANSSON) $(HTSLIB) $(LDADDS)
+	$(CXX) $(CFLAGS)  $(HTSLIB) -v -o $@ $(OBJECTS) $(JANSSON) $(LDADDS)
 
 .cpp.o:
 	$(CXX) $(CFLAGS) $(INCLUDES) $(PCH_FLAGS) -c $< -o $@
@@ -49,7 +51,8 @@ $(HTSLIB):
 	cd lib/htslib && autoheader 
 	cd lib/htslib && autoconf
 	cd lib/htslib && ./configure
-	make -C lib/htslib libhts.a
+	make -C lib/htslib libhts.$(LIBEX)
+	make -C lib/htslib install-$(LIBEX)
 
 clean:
 	rm -rf $(OBJECTS) $(PROGRAM) $(PCH) *.dSYM
