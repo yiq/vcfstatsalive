@@ -6,8 +6,6 @@
 
 #include <memory>
 
-#include "Variant.h"
-
 #include "BasicStatsCollector.h"
 
 using namespace std;
@@ -83,31 +81,37 @@ int main(int argc, char* argv[]) {
 	argc -= optind;
 	argv += optind;
 
-	vcf::VariantCallFile vcfFile;
+	htsFile *fp;
 
 	if (argc == 0) {
-		vcfFile.open(std::cin);
+		fp = hts_open("-", "r");
 	}
 	else {
 		filename = *argv;
-		vcfFile.open(filename);
+		fp = hts_open(filename.c_str(), "r");
 	}
 
-	if(!vcfFile.is_open()) {
+	if (fp == NULL) {
 		std::cerr<<"Unable to open vcf file / stream"<<std::endl;
 		exit(1);
 	}
 
 	BasicStatsCollector *bsc = new BasicStatsCollector(qualHistLowerVal, qualHistUpperVal, logScaleAF);
 
-
 	unsigned long totalVariants = 0;
-	vcf::Variant var(vcfFile);
 
-	while(vcfFile.is_open() && !vcfFile.done()) {
+	bcf_hdr_t* hdr = bcf_hdr_read(fp);
+	bcf1_t* line = bcf_init();
 
-		vcfFile.getNextVariant(var);
-		bsc->processVariant(var);
+	while(bcf_read(fp, hdr, line) == 0) {
+
+		// Unpack alternates and info block
+		if (bcf_unpack(line, BCF_UN_STR) != 0) {
+			std::cerr<<"Error unpacking"<<std::endl;
+		}
+
+		bsc->processVariant(hdr, line);
+		
 		totalVariants++;
 
 		if((totalVariants > 0 && totalVariants % updateRate == 0) ||
