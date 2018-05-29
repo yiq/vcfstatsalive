@@ -6,8 +6,6 @@
 
 #include <memory>
 
-#include "Variant.h"
-
 #include "BasicStatsCollector.h"
 
 using namespace std;
@@ -20,6 +18,7 @@ static struct option getopt_options[] =
 	{"first-update",	required_argument,	0, 'f'},
 	{"qual-lower-val",	optional_argument,	0, 'q'},
 	{"qual-upper-val",	optional_argument,	0, 'Q'},
+	{"log-scale-af",	optional_argument,	0, 'l'},
 	{0, 0, 0, 0}
 };
 
@@ -37,11 +36,12 @@ int main(int argc, char* argv[]) {
 	firstUpdateRate = 0;
 	qualHistLowerVal = 1;
 	qualHistUpperVal = 200;
+	bool logScaleAF = false;
 
 	int option_index = 0;
 
 	int ch;
-	while((ch = getopt_long (argc, argv, "f:u:", getopt_options, &option_index)) != -1) {
+	while((ch = getopt_long (argc, argv, "f:u:q:Q:l", getopt_options, &option_index)) != -1) {
 		switch(ch) {
 			case 0:
 				break;
@@ -64,6 +64,10 @@ int main(int argc, char* argv[]) {
 					cerr<<"Invalid quality histogram upperbound value "<<qualHistUpperVal<<endl;
 					exit(1);
 				}
+				break;
+			case 'l':
+				logScaleAF = true;
+				break;
 			default:
 				break;
 		}
@@ -77,31 +81,37 @@ int main(int argc, char* argv[]) {
 	argc -= optind;
 	argv += optind;
 
-	vcf::VariantCallFile vcfFile;
+	htsFile *fp;
 
 	if (argc == 0) {
-		vcfFile.open(std::cin);
+		fp = hts_open("-", "r");
 	}
 	else {
 		filename = *argv;
-		vcfFile.open(filename);
+		fp = hts_open(filename.c_str(), "r");
 	}
 
-	if(!vcfFile.is_open()) {
+	if (fp == NULL) {
 		std::cerr<<"Unable to open vcf file / stream"<<std::endl;
 		exit(1);
 	}
 
-	BasicStatsCollector *bsc = new BasicStatsCollector(qualHistLowerVal, qualHistUpperVal);
-
+	BasicStatsCollector *bsc = new BasicStatsCollector(qualHistLowerVal, qualHistUpperVal, logScaleAF);
 
 	unsigned long totalVariants = 0;
-	vcf::Variant var(vcfFile);
 
-	while(vcfFile.is_open() && !vcfFile.done()) {
+	bcf_hdr_t* hdr = bcf_hdr_read(fp);
+	bcf1_t* line = bcf_init();
 
-		vcfFile.getNextVariant(var);
-		bsc->processVariant(var);
+	while(bcf_read(fp, hdr, line) == 0) {
+
+		// Unpack alternates and info block
+		if (bcf_unpack(line, BCF_UN_STR) != 0) {
+			std::cerr<<"Error unpacking"<<std::endl;
+		}
+
+		bsc->processVariant(hdr, line);
+		
 		totalVariants++;
 
 		if((totalVariants > 0 && totalVariants % updateRate == 0) ||
@@ -130,7 +140,7 @@ void printStatsJansson(AbstractStatCollector* rootStatCollector) {
 	rootStatCollector->appendJson(j_root);
 
 	// Dump the json
-	cout<<json_dumps(j_root, JSON_COMPACT | JSON_ENSURE_ASCII | JSON_PRESERVE_ORDER)<<endl;
+	cout<<json_dumps(j_root, JSON_COMPACT | JSON_ENSURE_ASCII | JSON_PRESERVE_ORDER)<<";"<<endl;
 
 	json_decref(j_root);
 }

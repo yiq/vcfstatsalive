@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include "Variant.h"
 #include <memory>
 
 namespace VcfStatsAlive {
@@ -35,10 +34,10 @@ namespace VcfStatsAlive {
 			/**
 			 * Process the variant and update statistics
 			 *
-			 * @param var The variant read
-			 * @param refVector The reference the read is aligned to
+			 * @param hdr The vcf file header information
+			 * @param var The hstlib variant record
 			 */
-			virtual void processVariantImpl(const vcf::Variant& var) = 0;
+			virtual void processVariantImpl(bcf_hdr_t* hdr, bcf1_t* var) = 0;
 
 			/**
 			 * Append statistics as json
@@ -82,10 +81,10 @@ namespace VcfStatsAlive {
 			 * current collector, and the processVariant function of all the children
 			 * collectors.
 			 *
-			 * @param var The variant read
-			 * @param refVector The reference the read is aligned to
+			 * @param hdr The vcf file header information
+			 * @param var The htslib variant 
 			 */
-			void processVariant(const vcf::Variant& var);
+			void processVariant(bcf_hdr_t* hdr, bcf1_t* var);
 
 			/**
 			 * Create json of the collector tree

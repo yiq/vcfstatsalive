@@ -1,6 +1,17 @@
-CFLAGS=-g -std=c++11
-INCLUDES=-Ilib/vcflib/src -Ilib/vcflib -Ilib/jansson-2.6/src
-LDADDS=-lz -lstdc++
+# Use custom to pass -DVCFLIB_PARITY to omit certain htslib API calls
+CUSTOM=
+
+CFLAGS=-g -std=c++11 $(CUSTOM)
+INCLUDES=-Ilib/vcflib/src -Ilib/vcflib -Ilib/jansson-2.6/src -Ilib/htslib/
+
+LDADDS=-lz -lstdc++ 
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S), Darwin)
+	LIBEX=dylib
+else
+	LDADDS+=-lhts
+	LIBEX=so
+endif
 
 SOURCES=main.cpp \
 		AbstractStatCollector.cpp \
@@ -14,15 +25,14 @@ PCH_FLAGS=-include $(PCH_SOURCE)
 OBJECTS=$(SOURCES:.cpp=.o)
 
 JANSSON=lib/jansson-2.6/src/.libs/libjansson.a
-VCFLIB=lib/vcflib/libvcf.a
-DISORDER=lib/vcflib/smithwaterman/disorder.c
+HTSLIB=lib/htslib/libhts.$(LIBEX)
 
 all: $(PROGRAM)
 
 .PHONY: all
 
-$(PROGRAM): $(PCH) $(OBJECTS) $(VCFLIB) $(JANSSON)
-	$(CXX) $(CFLAGS) -o $@ $(OBJECTS) $(VCFLIB) $(JANSSON) $(DISORDER) $(LDADDS)
+$(PROGRAM): $(PCH) $(OBJECTS) $(JANSSON) $(HTSLIB)
+	$(CXX) $(CFLAGS)  $(HTSLIB) -v -o $@ $(OBJECTS) $(JANSSON) $(LDADDS)
 
 .cpp.o:
 	$(CXX) $(CFLAGS) $(INCLUDES) $(PCH_FLAGS) -c $< -o $@
@@ -36,14 +46,19 @@ $(JANSSON):
 	@if [ ! -d lib/jansson-2.6 ]; then cd lib; curl -o - http://www.digip.org/jansson/releases/jansson-2.6.tar.gz | tar -xzf - ; fi
 	@cd lib/jansson-2.6; ./configure --disable-shared --enable-static; make; cd ../..
 
-$(VCFLIB):
-	make -C lib/vcflib libvcf.a
+$(HTSLIB): 
+	cd lib/htslib && autoheader 
+	cd lib/htslib && autoconf
+	cd lib/htslib && ./configure
+	make -C lib/htslib libhts.$(LIBEX)
+	make -C lib/htslib install-$(LIBEX)
 
 clean:
 	rm -rf $(OBJECTS) $(PROGRAM) $(PCH) *.dSYM
 
 clean-dep:
-	make -C lib/vcflib clean
 	make -C lib/jansson-2.6 clean
+	make -C lib/htslib clean
+
 
 .PHONY: clean

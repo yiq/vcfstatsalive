@@ -31,26 +31,29 @@ namespace VcfStatsAlive {
 			const int kQualHistLowerbound;
 			const int kQualHistUpperbound;
 
-			unsigned int m_alleleFreqHist[50];
-			vector<int> m_qualityDist;
+			unsigned int *m_alleleFreqHist;
+			size_t _alleleFreqBins;
+			bool usingLogScaleAF;
+			std::vector<int> m_qualityDist;
 			unsigned int m_mutationSpec[4][4];
 			unsigned int m_variantTypeDist[VT_SIZE];
-			map<long, size_t> m_indelSizeDist;
+			std::map<long, size_t> m_indelSizeDist;
 
 
-			virtual void processVariantImpl(const vcf::Variant& var) override;
+			virtual void processVariantImpl(bcf_hdr_t* hdr, bcf1_t* var) override;
 			virtual void appendJsonImpl(json_t * jsonRootObj) override;
 
 		public:
-			BasicStatsCollector(int qualLower, int qualUpper);
+			BasicStatsCollector(int qualLower, int qualUpper, bool logScaleAF = false);
+			virtual ~BasicStatsCollector();
 
 		private:
-			void updateTsTvRatio(const vcf::Variant& var, const string& alt);
-			void updateMutationSpectrum(const vcf::Variant& var, const string& alt);
-			void updateAlleleFreqHist(const vcf::Variant& var);
-			void updateQualityDist(const vcf::Variant& var);
-			void updateVariantTypeDist(const vcf::Variant& var, const string& alt);
-			void updateIndelSizeDist(const vcf::Variant& var, const string& alt);
+			void updateTsTvRatio(bcf1_t* var, int altIndex, bool isSnp);
+			void updateMutationSpectrum(bcf1_t* var, int altIndex, bool isSnp);
+			void updateAlleleFreqHist(bcf_hdr_t* hdr, bcf1_t* var);
+			void updateQualityDist(float qual);
+			void updateVariantTypeDist(bcf1_t* var, int altIndex, int refLength);
+			void updateIndelSizeDist(int refLength, int altLength);
 	};
 }
 

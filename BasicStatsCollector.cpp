@@ -2,19 +2,32 @@
 
 #include <cmath>
 
+using namespace std;
+
 namespace VcfStatsAlive {
-	unsigned int StringToUInt(const string &text)
+	inline unsigned int StringToUInt(const string &text)
 	{
 		std::stringstream ss(text);
 		unsigned int result;
 		return ss >> result ? result : 0;
 	}
 
-	double StringToDouble(const string &text)
+	inline double StringToDouble(const string &text)
 	{
 		std::stringstream ss(text);
 		double result;
 		return ss >> result ? result : 0;
+	}
+
+	template <typename T>
+	inline int valueToBinCloseInterval(T value, T minValue, T maxValue, int bins) {
+		return  floor((value - minValue) / (maxValue - minValue) * bins);
+	}
+
+	template <typename T>
+	inline int valueToBinOpenInterval(T value, T minValue, T maxValue, int bins) {
+		if (value < minValue) return 0;
+		else return valueToBinCloseInterval(value, minValue, maxValue, bins-1) + 1;
 	}
 }
 
@@ -22,24 +35,26 @@ using namespace VcfStatsAlive;
 
 static const unsigned int kCMTrailLength = 5;
 static const double kCMThreshold = 0.001;
+static const double kLogAFLowerBound = -5.0;
+static const double kLogAFUpperBound = 0.0;
 
-inline bool _isPurine(const string& allele) {
-	if(allele.length() != 1) return false;
-	if(allele == "A" || allele == "a" || allele == "G" || allele == "g") return true;
+inline bool _isPurine(const char allele) {
+	//if(allele.length() != 1) return false;
+	if(allele == 'A' || allele == 'a' || allele == 'G' || allele == 'g') return true;
 	return false;
 }
 
-inline bool _isPyrimidine(const string& allele) {
-	if(allele.length() != 1) return false;
-	if(allele == "C" || allele == "c" || allele == "T" || allele == "t") return true;
+inline bool _isPyrimidine(const char allele) {
+	//if(allele.length() != 1) return false;
+	if(allele == 'C' || allele == 'c' || allele == 'T' || allele == 't') return true;
 	return false;
 }
 
-inline size_t base2Idx(const string& base) {
-	if(base == "A" || base == "a") return 0;
-	else if (base == "G" || base == "g") return 1;
-	else if (base == "C" || base == "c") return 2;
-	else if (base == "T" || base == "t") return 3;
+inline size_t base2Idx(const char base) {
+	if(base == 'A' || base == 'a') return 0;
+	else if (base == 'G' || base == 'g') return 1;
+	else if (base == 'C' || base == 'c') return 2;
+	else if (base == 'T' || base == 't') return 3;
 	else return 4;
 }
 
@@ -58,10 +73,11 @@ inline char idx2Base(size_t idx) {
 	}
 }
 
-BasicStatsCollector::BasicStatsCollector(int qualLower, int qualUpper) :
+BasicStatsCollector::BasicStatsCollector(int qualLower, int qualUpper, bool logScaleAF) :
 	AbstractStatCollector(),
 	_transitions(0),
 	_transversions(0),
+	usingLogScaleAF(logScaleAF),
 	kQualHistLowerbound(qualLower),
 	kQualHistUpperbound(qualUpper),
 	m_qualityDist(qualUpper - qualLower + 1 + 2, 0) {
@@ -71,9 +87,14 @@ BasicStatsCollector::BasicStatsCollector(int qualLower, int qualUpper) :
 	_stats[kTotalRecords] = 0;
 	_stats[kTsTvRatio] = 0;
 
-	memset(m_alleleFreqHist, 0, sizeof(unsigned int) * 50);
+	_alleleFreqBins = logScaleAF ? 52 : 51;
+	m_alleleFreqHist = (unsigned int *)malloc(sizeof(unsigned int) * _alleleFreqBins);
+
+
+	memset(m_alleleFreqHist, 0, sizeof(unsigned int) * _alleleFreqBins);
 	memset(m_mutationSpec, 0, sizeof(unsigned int) * 4 * 4);
 	memset(m_variantTypeDist, 0, sizeof(unsigned int) * static_cast<unsigned int>(VT_SIZE));
+
 
 #ifdef DEBUG
 	StatMapT::iterator iter;
@@ -84,22 +105,34 @@ BasicStatsCollector::BasicStatsCollector(int qualLower, int qualUpper) :
 
 }
 
-void BasicStatsCollector::updateTsTvRatio(const vcf::Variant& var, const string& alt) {
+BasicStatsCollector::~BasicStatsCollector() {
+	free(m_alleleFreqHist);
+}
+
+void BasicStatsCollector::updateTsTvRatio(bcf1_t* var, int altIndex, bool isSnp) {
 	// TsTv Ratio - Only evaluate SNPs 
-	if(var.ref.size() == 1 && alt.size() == 1 && var.ref != alt && var.ref != "." && alt != ".") {
-		if(_isPurine(var.ref)) {
-			if(_isPurine(alt)) {
+
+	char ref = var->d.allele[0][0];
+	char htsAlt = var->d.allele[altIndex][0];
+#ifdef VCFLIB_PARITY
+	if(var->d.allele[0][1] == 0 && var->d.allele[altIndex][1] == 0 && var->d.allele[0][0] != '.' && var->d.allele[altIndex][0] != '.')
+#else
+	if(isSnp) 
+#endif
+    {
+		if(_isPurine(ref)) {
+			if(_isPurine(htsAlt)) {
 				_transitions++;
 			}
-			else if(_isPyrimidine(alt)){
+			else if(_isPyrimidine(htsAlt)){
 				_transversions++;
 			} 
 		}
 		else {
-			if(_isPurine(alt)) {
+			if(_isPurine(htsAlt)) {
 				_transversions++;
 			}
-			else if(_isPyrimidine(alt)){
+			else if(_isPyrimidine(htsAlt)){
 				_transitions++;
 			} 
 		}	
@@ -107,55 +140,81 @@ void BasicStatsCollector::updateTsTvRatio(const vcf::Variant& var, const string&
 
 }
 
-void BasicStatsCollector::updateMutationSpectrum(const vcf::Variant& var, const string& alt) {
+void BasicStatsCollector::updateMutationSpectrum(bcf1_t* var, int altIndex, bool isSnp) {
 	// Mutation Spectrum
-	size_t firstIdx = base2Idx(var.ref);
-	size_t secondIdx = base2Idx(alt);
+#ifdef VCFLIB_PARITY
+	if(var->d.allele[0][1] != 0 || var->d.allele[altIndex][1] != 0) return;
+#else
+	if(!isSnp) return;
+#endif
+
+	size_t firstIdx = base2Idx(var->d.allele[0][0]);
+	size_t secondIdx = base2Idx(var->d.allele[altIndex][0]);
 
 	if(firstIdx < 4 && secondIdx < 4) {
 		m_mutationSpec[firstIdx][secondIdx]++;
 	}
 }
 
-void BasicStatsCollector::updateAlleleFreqHist(const vcf::Variant& var) {
+void BasicStatsCollector::updateAlleleFreqHist(bcf_hdr_t* hdr, bcf1_t* var) {
 	// Allele Frequency Histogram
 	int alleleFreqBin;
-	double alleleFreq;
+	double alleleFreq = 0;
+	int count = 0;
 
-	if(var.info.find("AF") != var.info.end()) {
-		alleleFreq = StringToDouble(var.info.at("AF")[0]);
+	float* pfAlleleFreq = NULL;
+	if(bcf_get_info_float(hdr, var, "AF", &pfAlleleFreq, &count) >= 0 && count > 0) {
+		alleleFreq = *pfAlleleFreq;
 	}
 	else {
-		if(var.info.find("DP") == var.info.end() || var.info.find("RO") == var.info.end()) return;
-		unsigned int depth = StringToUInt(var.info.at("DP")[0]);
-		unsigned int refObsrv = StringToUInt(var.info.at("RO")[0]);
-		alleleFreq = ( depth - refObsrv ) / ((double)depth);
+		int* piDepth = NULL;
+		int* piRefObsrv = NULL;
+		count = 0;
+		if(bcf_get_info_int32(hdr, var, "DP", &piDepth, &count) >= 0 && count > 0 && 
+		   bcf_get_info_int32(hdr, var, "RO", &piRefObsrv, &count) >= 0 && count > 0) {
+					alleleFreq = ( *piDepth - *piRefObsrv ) / ((double)*piDepth);
+		}
+
+		free(piRefObsrv);
+		free(piDepth);
 	}
 
-	alleleFreqBin = (int) ceil(alleleFreq/2.0*100.0) - 1;
+	free(pfAlleleFreq);
 
-	if(alleleFreqBin == -1) alleleFreqBin = 0;
+	if(alleleFreq == 0) return;
 
-	assert(alleleFreq <= 1);
-	assert(alleleFreq >= 0);
+	if (usingLogScaleAF) {
+		double logAF = log10(alleleFreq);
+		alleleFreqBin = (int) valueToBinOpenInterval(logAF, kLogAFLowerBound, kLogAFUpperBound, _alleleFreqBins - 1);
+	}
+	else {
+		alleleFreqBin = (int) valueToBinCloseInterval(alleleFreq, 0.0, 1.0, _alleleFreqBins - 1);
+	}
+
+	//assert(alleleFreq <= 1);
+	//assert(alleleFreq >= 0);
+	assert(alleleFreqBin >= 0);
+	assert(alleleFreqBin < _alleleFreqBins);
 
 	m_alleleFreqHist[alleleFreqBin]++;
-
 }
 
-void BasicStatsCollector::updateVariantTypeDist(const vcf::Variant& var, const string& alt) {
+void BasicStatsCollector::updateVariantTypeDist(bcf1_t* var, int altIndex, int refLength) {
 	// Type Distribution
 	VariantTypeT vt;
-	if(var.ref.size() == 1 && alt.size() == 1) {
+	int altLength = strlen(var->d.allele[altIndex]);
+
+	// Do not use bcf_is_snp here because it enforces its logic across all alternates.
+	if(refLength == 1 && altLength == 1) {
 		vt = VT_SNP;
 	}
-	else if (var.ref.size() == 1 && alt.size() > 1) {
+	else if (refLength == 1 && altLength > 1) {
 		vt = VT_INS;
-		updateIndelSizeDist(var, alt);
+		updateIndelSizeDist(refLength, altLength);
 	}
-	else if (var.ref.size() > 1 && alt.size() == 1) {
+	else if (refLength > 1 && altLength == 1) {
 		vt = VT_DEL;
-		updateIndelSizeDist(var, alt);
+		updateIndelSizeDist(refLength, altLength);
 	}
 	else {
 		vt = VT_OTHER;
@@ -164,11 +223,11 @@ void BasicStatsCollector::updateVariantTypeDist(const vcf::Variant& var, const s
 	m_variantTypeDist[static_cast<unsigned int>(vt)]++;
 }
 
-void BasicStatsCollector::updateQualityDist(const vcf::Variant& var) {
+void BasicStatsCollector::updateQualityDist(float qual) {
 
 	size_t bin = 0;
 
-	int intQual = int(var.quality);
+	int intQual = int(qual);
 
 	if (intQual < kQualHistLowerbound)
 		bin = (kQualHistUpperbound - kQualHistLowerbound + 1);
@@ -181,27 +240,30 @@ void BasicStatsCollector::updateQualityDist(const vcf::Variant& var) {
 
 }
 
-void BasicStatsCollector::updateIndelSizeDist(const vcf::Variant& var, const string& alt) {
+void BasicStatsCollector::updateIndelSizeDist(int refLength, int altLength) {
 
-	long indelSize = long(alt.size()) - long(var.ref.size());
+	long indelSize = long(altLength) - long(refLength);
 	if(m_indelSizeDist.find(indelSize) == m_indelSizeDist.end())
 		m_indelSizeDist[indelSize] = 1;
 	else
 		m_indelSizeDist[indelSize] += 1;
 }
 
-void BasicStatsCollector::processVariantImpl(const vcf::Variant& var) {
+void BasicStatsCollector::processVariantImpl(bcf_hdr_t* hdr, bcf1_t* var) {
 	// increment total variant counter
 	++_stats[kTotalRecords];
 
-	for(auto altIter = var.alt.cbegin(); altIter != var.alt.cend();altIter++) {
-		updateTsTvRatio(var, *altIter);
-		updateMutationSpectrum(var, *altIter);
-		updateVariantTypeDist(var, *altIter);
+	bool isSnp = bcf_is_snp(var);
+	int refLength = strlen(var->d.allele[0]);
+
+	for(int altIndex = 1; altIndex < var->n_allele; altIndex++) {
+		updateTsTvRatio(var, altIndex, isSnp);
+		updateMutationSpectrum(var, altIndex, isSnp);
+		updateVariantTypeDist(var, altIndex, refLength);
 	}
 
-	updateAlleleFreqHist(var);
-	updateQualityDist(var);
+	updateAlleleFreqHist(hdr, var);
+	updateQualityDist(var->qual);
 
 }
 
@@ -217,13 +279,22 @@ void BasicStatsCollector::appendJsonImpl(json_t * jsonRootObj) {
 
 	// Allele Frequency Histogram
 	json_t * j_af_hist = json_object();
+	json_t * j_af_hist_bins = json_object();
 	for(size_t i=0; i<50; i++) {
 		if (m_alleleFreqHist[i] > 0) {
 			std::stringstream labelSS; labelSS << i;
-			json_object_set_new(j_af_hist, labelSS.str().c_str(), json_integer(m_alleleFreqHist[i]));
+			json_object_set_new(j_af_hist_bins, labelSS.str().c_str(), json_integer(m_alleleFreqHist[i]));
 		}
 	}
+
+	json_object_set_new(j_af_hist, "usingLogScaleAF", json_boolean(usingLogScaleAF));
+	if (usingLogScaleAF) {
+		json_object_set_new(j_af_hist, "logAFHistLowerBound", json_real(kLogAFLowerBound));
+		json_object_set_new(j_af_hist, "logAFHistUpperBound", json_real(kLogAFUpperBound));
+	}
+	json_object_set_new(j_af_hist, "afHistBins", j_af_hist_bins);
 	json_object_set_new(jsonRootObj, "af_hist", j_af_hist);
+
 
 	// Mutation spectrum
 	json_t * j_mut_spec = json_object();
