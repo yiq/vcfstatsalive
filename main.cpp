@@ -196,7 +196,7 @@ int main(int argc, char* argv[]) {
 	if(subsetSamples) {
 		for (int k=0; k<nsmpl; k++) {
 			ofstream myfile;
-			char *sampleName = strcat(hdr->samples[k], ".json");
+			char *sampleName = strcat(hdr->samples[k], ".vcfstats.json");
   			myfile.open (sampleName);
 			printStatsJansson(bsc_arr[k], myfile);
 			myfile.close();
