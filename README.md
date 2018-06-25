@@ -22,7 +22,10 @@ Options:
   -Q	qualHistUpperVal [default=200]	The upper value of invalid QUAL value. Any QUAL value greater than this will not be counted towards quality histogram
   -l	logScaleAF [default=false]	    When specified, allele frequency histogram will be in log scale
   -b	batch [default=false]	    When specified, the statistics will only be outputed a single time at the end of the analysis.
+<<<<<<< HEAD
   -S	subsetsamples [default=false]	    When specified for a multisample vcf the stats will be calculated for each sample independently and the output will be in the form `sampleName.json` with 1 file for each sample.
+=======
+>>>>>>> master
 
 If no vcf-file is specified, input is then read from stdin
 ```

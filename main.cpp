@@ -20,7 +20,7 @@ static struct option getopt_options[] =
 	{"qual-upper-val",	optional_argument,	0, 'Q'},
 	{"log-scale-af",	optional_argument,	0, 'l'},
 	{"subset-samples",	optional_argument,	0, 'S'},
-	{"batch",	optional_argument,	0, 'b'},
+	{"batch",			optional_argument,	0, 'b'},
 	{0, 0, 0, 0}
 };
 
@@ -76,6 +76,7 @@ int main(int argc, char* argv[]) {
 	qualHistLowerVal = 1;
 	qualHistUpperVal = 200;
 	bool logScaleAF = false;
+	bool batch = true;
 
 	int option_index = 0;
 
