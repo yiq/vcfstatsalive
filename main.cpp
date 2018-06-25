@@ -151,8 +151,6 @@ int main(int argc, char* argv[]) {
 	BasicStatsCollector **bsc_arr = (BasicStatsCollector **)malloc(sizeof(BasicStatsCollector) * nsmpl);
 	BasicStatsCollector *bsc;
 	if (subsetSamples) {
-
-	// 	// bsc = new BasicStatsCollector[nsmpl];
 		for (int k=0; k < nsmpl; k++) {
 			bsc_arr[k] = new BasicStatsCollector(qualHistLowerVal, qualHistUpperVal, logScaleAF);
 		}
