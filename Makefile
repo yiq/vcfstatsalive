@@ -2,16 +2,10 @@
 CUSTOM=
 
 CFLAGS=-g -std=c++11 $(CUSTOM)
-INCLUDES=-Ilib/vcflib/src -Ilib/vcflib -Ilib/jansson-2.6/src -Ilib/htslib/
+INCLUDES=-Ilib/jansson-2.6/src -Ilib/htslib/
 
-LDADDS=-lz -lstdc++ 
+LDADDS=-lz -lm -lbz2 -llzma -lstdc++ -lcurl -lcrypto -lpthread
 UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S), Darwin)
-	LIBEX=dylib
-else
-	LDADDS+=-lhts
-	LIBEX=so
-endif
 
 SOURCES=main.cpp \
 		AbstractStatCollector.cpp \
@@ -25,14 +19,14 @@ PCH_FLAGS=-include $(PCH_SOURCE)
 OBJECTS=$(SOURCES:.cpp=.o)
 
 JANSSON=lib/jansson-2.6/src/.libs/libjansson.a
-HTSLIB=lib/htslib/libhts.$(LIBEX)
+HTSLIB=lib/htslib/libhts.a
 
 all: $(PROGRAM)
 
 .PHONY: all
 
 $(PROGRAM): $(PCH) $(OBJECTS) $(JANSSON) $(HTSLIB)
-	$(CXX) $(CFLAGS)  $(HTSLIB) -v -o $@ $(OBJECTS) $(JANSSON) $(LDADDS)
+	$(CXX) $(CFLAGS) -v -o $@ $(OBJECTS) $(JANSSON) $(HTSLIB) $(LDADDS)
 
 .cpp.o:
 	$(CXX) $(CFLAGS) $(INCLUDES) $(PCH_FLAGS) -c $< -o $@
@@ -47,11 +41,10 @@ $(JANSSON):
 	@cd lib/jansson-2.6; ./configure --disable-shared --enable-static; make; cd ../..
 
 $(HTSLIB): 
-	cd lib/htslib && autoheader 
+	cd lib/htslib && autoheader
 	cd lib/htslib && autoconf
 	cd lib/htslib && ./configure
-	make -C lib/htslib libhts.$(LIBEX)
-	make -C lib/htslib install-$(LIBEX)
+	make -C lib/htslib
 
 clean:
 	rm -rf $(OBJECTS) $(PROGRAM) $(PCH) *.dSYM
