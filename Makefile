@@ -10,23 +10,27 @@ UNAME_S := $(shell uname -s)
 SOURCES=main.cpp \
 		AbstractStatCollector.cpp \
 		BasicStatsCollector.cpp 
-PROGRAM=vcfstatsalive
+PROGRAM=vcfstatsalive vcfstats
 PCH_SOURCE=vcfStatsAliveCommon.hpp
 PCH=$(PCH_SOURCE).gch
 
 PCH_FLAGS=-include $(PCH_SOURCE)
 
-OBJECTS=$(SOURCES:.cpp=.o)
+OBJECTS=AbstractStatCollector.o \
+	BasicStatsCollector.o 
 
 JANSSON=lib/jansson-2.6/src/.libs/libjansson.a
-HTSLIB=lib/htslib/libhts.a
+HTSLIB=$(HTSLIB_HOME)/lib/libhts.a
 
 all: $(PROGRAM)
 
 .PHONY: all
 
-$(PROGRAM): $(PCH) $(OBJECTS) $(JANSSON) $(HTSLIB)
-	$(CXX) $(CFLAGS) -v -o $@ $(OBJECTS) $(JANSSON) $(HTSLIB) $(LDADDS)
+vcfstatsalive: $(PCH) $(OBJECTS) main.cpp $(JANSSON)
+	$(CXX) $(CFLAGS) $(PCH_FLAGS) -v -o $@ $(OBJECTS) main.cpp $(JANSSON) $(HTSLIB) $(LDADDS)
+
+vcfstats: $(PCH) $(OBJECTS) vcfstats.cpp $(JANSSON)
+	$(CXX) $(CFLAGS) $(PCH_FLAGS) -v -o $@ $(OBJECTS) vcfstats.cpp $(JANSSON) $(HTSLIB) $(LDADDS)
 
 .cpp.o:
 	$(CXX) $(CFLAGS) $(INCLUDES) $(PCH_FLAGS) -c $< -o $@
@@ -39,12 +43,6 @@ $(PCH):
 $(JANSSON):
 	@if [ ! -d lib/jansson-2.6 ]; then cd lib; curl -o - http://www.digip.org/jansson/releases/jansson-2.6.tar.gz | tar -xzf - ; fi
 	@cd lib/jansson-2.6; ./configure --disable-shared --enable-static; make; cd ../..
-
-$(HTSLIB): 
-	cd lib/htslib && autoheader
-	cd lib/htslib && autoconf
-	cd lib/htslib && ./configure
-	make -C lib/htslib
 
 clean:
 	rm -rf $(OBJECTS) $(PROGRAM) $(PCH) *.dSYM
