@@ -31,7 +31,6 @@ int main(int argc, const char** argv) {
     if (argc == 0) fp = hts_open("-", "r");
     else fp = hts_open(*argv, "r");
 
-    std::cout<<fp<<std::endl;
 
     if (fp == NULL) {
         if (argc == 0) std::cerr<<"Unable to open vcf stream"<<std::endl;

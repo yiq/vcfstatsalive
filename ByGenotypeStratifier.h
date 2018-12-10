@@ -1,3 +1,13 @@
+/* ByGenotypeStratifier.h
+ *
+ * Collect stats while stratifing over genotype
+ *
+ * Because the stratifier will need to be able to create
+ * new stats collectors of the correct type, this class
+ * is defined as a template. User should instanciate this class
+ * using the desired stats collector type
+ */
+
 #ifndef BYGENOTYPESTRATIFIER_H
 #define BYGENOTYPESTRATIFIER_H
 
@@ -16,16 +26,16 @@ namespace VcfStatsAlive {
                 ngt = bcf_get_genotypes(hdr, var, &gt_arr, &ngt_arr);
                 std::unique_ptr<int32_t> uniq_gt_arr(gt_arr);
 
-                auto gt_str = genotype_str(gt_arr, ngt_arr);
+                auto gt_cat = genotype_category(gt_arr, ngt_arr);
 
-                auto coll = m_collectors.find(gt_str);
+                auto coll = m_collectors.find(gt_cat);
 
                 if(coll == m_collectors.end()) {
-                    std::cout<<"collector created for "<<gt_str<<std::endl;
-                    m_collectors[gt_str] = new CollectorT();
+                    std::cerr<<"collector created for "<<gt_cat<<std::endl;
+                    m_collectors[gt_cat] = new CollectorT();
                 }
 
-                m_collectors[gt_str]->processVariant(hdr, var);
+                m_collectors[gt_cat]->processVariant(hdr, var);
             }
             
             virtual void appendJsonImpl(json_t* jsonRootObj) override {
@@ -56,6 +66,23 @@ namespace VcfStatsAlive {
 
                 return ss.str();
             }
+
+            // convert htslib genotype array to category string
+            std::string genotype_category(const int32_t *gt_arr, const int32_t ngt_arr) {
+                /* categories:
+                 *
+                 * 1. heterozygous.     E.g. 0/1, 1/2, 2|1
+                 * 2. homozygous alt.   E.g. 1/1, 2|2
+                 */
+
+                auto gt1 = (gt_arr[0] >> 1) - 1;
+                auto gt2 = (gt_arr[1] >> 1) - 1;
+
+                if(gt1 < 0 || gt2 < 0) return "MISSING";
+                if(gt1 == 0 && gt2 == 0) return "REF";
+                if(gt1 == gt2) return "HOMO";
+                return "HET";
+           }
     };
 }
 
