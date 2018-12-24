@@ -20,7 +20,7 @@ OBJECTS=AbstractStatCollector.o \
 	BasicStatsCollector.o 
 
 JANSSON=lib/jansson-2.6/src/.libs/libjansson.a
-HTSLIB=$(HTSLIB_HOME)/lib/libhts.a
+HTSLIB?=$(HTSLIB_HOME)/lib/libhts.a
 
 all: $(PROGRAM)
 
