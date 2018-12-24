@@ -28,6 +28,8 @@ namespace VcfStatsAlive {
 
                 auto gt_cat = genotype_category(gt_arr, ngt_arr);
 
+                if(gt_cat == "REF") return;
+
                 auto coll = m_collectors.find(gt_cat);
 
                 if(coll == m_collectors.end()) {

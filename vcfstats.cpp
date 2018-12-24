@@ -1,6 +1,7 @@
 #include "AbstractStatCollector.h"
 #include "BasicStatsCollector.h"
 #include "ByGenotypeStratifier.h"
+#include "BySampleStratifier.h"
 
 using namespace VcfStatsAlive;
 
@@ -38,9 +39,12 @@ int main(int argc, const char** argv) {
         exit(1);
     };
 
-    ByGenotypeStratifier<StatsCollector> strat;
+    //ByGenotypeStratifier<StatsCollector> strat;
 
     bcf_hdr_t* hdr = bcf_hdr_read(fp);
+
+    BySampleStratifier<ByGenotypeStratifier<StatsCollector>> strat(hdr);
+
 	bcf1_t* line = bcf_init();
     
 	while(bcf_read(fp, hdr, line) == 0) {

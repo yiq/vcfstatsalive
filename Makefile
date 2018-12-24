@@ -1,5 +1,5 @@
 # Use custom to pass -DVCFLIB_PARITY to omit certain htslib API calls
-CUSTOM=
+CUSTOM?=
 
 CFLAGS=-g -std=c++11 $(CUSTOM)
 INCLUDES=-Ilib/jansson-2.6/src -Ilib/htslib/
