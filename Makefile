@@ -20,7 +20,7 @@ OBJECTS=AbstractStatCollector.o \
 	BasicStatsCollector.o 
 
 JANSSON=lib/jansson-2.6/src/.libs/libjansson.a
-HTSLIB?=$(HTSLIB_HOME)/lib/libhts.a
+HTSLIB?=$(HTSLIB_HOME)/libhts.a
 
 all: $(PROGRAM)
 
@@ -39,6 +39,12 @@ $(PCH):
 	$(CXX) $(CFLAGS) $(INCLUDES) -x c++-header $(PCH_SOURCE) -Winvalid-pch -o $@
 
 .PHONY: $(PCH)
+
+htslib:
+	cd lib/htslib && autoheader
+	cd lib/htslib && autoconf
+	cd lib/htslib && ./configure
+	make -C lib/htslib	
 
 $(JANSSON):
 	@if [ ! -d lib/jansson-2.6 ]; then cd lib; curl -o - http://www.digip.org/jansson/releases/jansson-2.6.tar.gz | tar -xzf - ; fi
