@@ -82,7 +82,7 @@ namespace VcfStatsAlive {
 
                 if(gt1 < 0 || gt2 < 0) return "MISSING";
                 if(gt1 == 0 && gt2 == 0) return "REF";
-                if(gt1 == gt2) return "HOMO";
+                if(gt1 == gt2) return "HOM";
                 return "HET";
            }
     };

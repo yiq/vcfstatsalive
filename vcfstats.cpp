@@ -19,7 +19,7 @@ void printStatsJansson(AbstractStatCollector* rootStatCollector) {
 	rootStatCollector->appendJson(j_root);
 
 	// Dump the json
-    std::cout<<json_dumps(j_root, JSON_COMPACT | JSON_ENSURE_ASCII | JSON_PRESERVE_ORDER)<<";"<<std::endl;
+    std::cout<<json_dumps(j_root, JSON_COMPACT | JSON_ENSURE_ASCII | JSON_PRESERVE_ORDER)<<std::endl;
 
 	json_decref(j_root);
 }
