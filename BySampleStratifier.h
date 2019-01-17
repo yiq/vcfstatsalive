@@ -26,7 +26,7 @@ namespace VcfStatsAlive {
                     sample_names[sample_idx] = strdup(hdr->id[BCF_DT_SAMPLE][sample_idx].key);
                 }
 
-                auto* subset_rec = bcf_init();
+                bcf1_t* subset_rec; // temporary bcf record to hold subsetted record
 
                 for(int sample_idx = 0; sample_idx < hdr->n[BCF_DT_SAMPLE]; sample_idx++) {
                     auto* sample = hdr->id[BCF_DT_SAMPLE] + sample_idx;
@@ -35,6 +35,8 @@ namespace VcfStatsAlive {
                     bcf_subset(hdr, subset_rec, 1, &imap);
 
                     m_collectors[sample->key]->processVariant(hdr, subset_rec);
+
+                    bcf_destroy(subset_rec);
                 }
 
             }
