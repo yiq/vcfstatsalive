@@ -3,12 +3,21 @@
 #include "ByGenotypeStratifier.h"
 #include "BySampleStratifier.h"
 
+#include <csignal>
+
 using namespace VcfStatsAlive;
 
 class StatsCollector : public BasicStatsCollector {
     public:
         StatsCollector() : BasicStatsCollector(1, 200, false) {}
 };
+
+
+size_t line_count = 0;
+
+void progressSignalHandler(int signum) {
+    std::cerr<<line_count <<" vcf lines processed."<<std::endl;
+}
 
 void printStatsJansson(AbstractStatCollector* rootStatCollector) {
 
@@ -39,16 +48,17 @@ int main(int argc, const char** argv) {
         exit(1);
     };
 
-    //ByGenotypeStratifier<StatsCollector> strat;
-
     bcf_hdr_t* hdr = bcf_hdr_read(fp);
 
     BySampleStratifier<ByGenotypeStratifier<StatsCollector>> strat(hdr);
 
 	bcf1_t* line = bcf_init();
+
+    signal(SIGUSR1, progressSignalHandler);
     
 	while(bcf_read(fp, hdr, line) == 0) {
         strat.processVariant(hdr, line);
+        line_count++;
     }
 
     printStatsJansson(&strat);
