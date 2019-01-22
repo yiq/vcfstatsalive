@@ -33,10 +33,12 @@ namespace VcfStatsAlive {
                     int imap = sample_idx;
                     subset_rec = bcf_dup(var);
                     bcf_subset(hdr, subset_rec, 1, &imap);
+                    auto *subset_hdr = bcf_hdr_subset(hdr, 1, hdr->samples + sample_idx, &imap);
 
-                    m_collectors[sample->key]->processVariant(hdr, subset_rec);
+                    m_collectors[sample->key]->processVariant(subset_hdr, subset_rec);
 
                     bcf_destroy(subset_rec);
+                    bcf_destroy(subset_hdr);
                 }
 
             }
