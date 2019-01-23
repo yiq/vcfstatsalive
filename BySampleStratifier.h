@@ -22,10 +22,6 @@ namespace VcfStatsAlive {
         protected:
             virtual void processVariantImpl(bcf_hdr_t* hdr, bcf1_t *var) override {
 
-                for(int sample_idx = 0; sample_idx < hdr->n[BCF_DT_SAMPLE]; sample_idx++) {
-                    sample_names[sample_idx] = strdup(hdr->id[BCF_DT_SAMPLE][sample_idx].key);
-                }
-
                 bcf1_t* subset_rec; // temporary bcf record to hold subsetted record
 
                 for(int sample_idx = 0; sample_idx < hdr->n[BCF_DT_SAMPLE]; sample_idx++) {
@@ -33,12 +29,10 @@ namespace VcfStatsAlive {
                     int imap = sample_idx;
                     subset_rec = bcf_dup(var);
                     bcf_subset(hdr, subset_rec, 1, &imap);
-                    auto *subset_hdr = bcf_hdr_subset(hdr, 1, hdr->samples + sample_idx, &imap);
 
-                    m_collectors[sample->key]->processVariant(subset_hdr, subset_rec);
+                    m_collectors[sample->key]->processVariant(m_subset_hdrs[sample_names[sample_idx]], subset_rec);
 
                     bcf_destroy(subset_rec);
-                    bcf_destroy(subset_hdr);
                 }
 
             }
@@ -60,15 +54,23 @@ namespace VcfStatsAlive {
                 sample_names = new char*[hdr->n[BCF_DT_SAMPLE]];
 
                 for(int sample_idx = 0; sample_idx < hdr->n[BCF_DT_SAMPLE]; sample_idx++) {
+                    int imap = sample_idx;
                     sample_names[sample_idx] = strdup(hdr->id[BCF_DT_SAMPLE][sample_idx].key);
                     std::cerr<<"Sample ["<<sample_names[sample_idx]<<"] seen; creating collector"<<std::endl;
                     m_collectors[sample_names[sample_idx]] = new CollectorT();
+                    m_subset_hdrs[sample_names[sample_idx]] = bcf_hdr_subset(hdr, 1, hdr->samples + sample_idx, &imap);
                 }
 
                 
             }
             virtual ~BySampleStratifier() {
+                // release collectors for each sample
                 for(auto& sample : m_collectors) delete sample.second;
+
+                // release bcf_hdr_t objects for each sample
+                for(auto& sample : m_subset_hdrs) bcf_hdr_destroy(sample.second);
+
+                // release sample names and pointer array
                 for(int i=0; i<sample_count; i++) free(sample_names[i]);
                 delete [] sample_names;
             }
@@ -77,6 +79,7 @@ namespace VcfStatsAlive {
             std::map<std::string, CollectorT*> m_collectors;
             int sample_count;
             char ** sample_names;
+            std::map<std::string, bcf_hdr_t*> m_subset_hdrs;
     };
 }
 
