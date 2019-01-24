@@ -1,0 +1,2 @@
+ACLOCAL_AMFILES = -I m4
+SUBDIRS = src .
