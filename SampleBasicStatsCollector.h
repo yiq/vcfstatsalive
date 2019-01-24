@@ -22,13 +22,9 @@ namespace VcfStatsAlive {
                 bool isSnp = bcf_is_snp(var);
                 int refLength = strlen(var->d.allele[0]);
 
-                std::cerr<<"[SampleBasicSC] ngt_arr=" << ngt_arr<<std::endl;
-
                 for(int altIndex = 0; altIndex < ngt_arr; altIndex++) {
                     int gt = (gt_arr[altIndex] >> 1) - 1;
                     if(gt <= 0) continue; // either missing or reference
-
-                    std::cerr<<"[SampleBasicSC] processing "<<var->d.allele[0]<<" -> "<<var->d.allele[gt]<<std::endl;
 
                     updateTsTvRatio(var, gt, isSnp);
                     updateMutationSpectrum(var, gt, isSnp);
