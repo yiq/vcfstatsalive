@@ -1,5 +1,5 @@
 #include "AbstractStatCollector.h"
-#include "BasicStatsCollector.h"
+#include "SampleBasicStatsCollector.h"
 #include "ByGenotypeStratifier.h"
 #include "BySampleStratifier.h"
 
@@ -7,9 +7,9 @@
 
 using namespace VcfStatsAlive;
 
-class StatsCollector : public BasicStatsCollector {
+class StatsCollector : public SampleBasicStatsCollector {
     public:
-        StatsCollector() : BasicStatsCollector(1, 200, false) {}
+        StatsCollector() : SampleBasicStatsCollector(1, 200, false) {}
 };
 
 

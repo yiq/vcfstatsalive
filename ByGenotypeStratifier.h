@@ -15,6 +15,7 @@
 
 #include "AbstractStatCollector.h"
 #include <sstream>
+#include <cstdlib>
 
 namespace VcfStatsAlive {
 

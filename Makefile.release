@@ -1,28 +1,36 @@
-CFLAGS=-O3 -std=c++98
-INCLUDES=-Ilib/vcflib/src -Ilib/vcflib -Ilib/jansson-2.6/src
-LDADDS=-lz -lstdc++
+# Use custom to pass -DVCFLIB_PARITY to omit certain htslib API calls
+CUSTOM?=
+
+CFLAGS=-O3 -std=c++11 $(CUSTOM)
+INCLUDES=-Ilib/jansson-2.6/src -Ilib/htslib/
+
+LDADDS=-lz -lm -lbz2 -llzma -lstdc++ -lcurl -lpthread
+UNAME_S := $(shell uname -s)
 
 SOURCES=main.cpp \
 		AbstractStatCollector.cpp \
 		BasicStatsCollector.cpp 
-PROGRAM=vcfstatsalive
+PROGRAM=vcfstatsalive vcfstats
 PCH_SOURCE=vcfStatsAliveCommon.hpp
 PCH=$(PCH_SOURCE).gch
 
 PCH_FLAGS=-include $(PCH_SOURCE)
 
-OBJECTS=$(SOURCES:.cpp=.o)
+OBJECTS=AbstractStatCollector.o \
+	BasicStatsCollector.o 
 
 JANSSON=lib/jansson-2.6/src/.libs/libjansson.a
-VCFLIB=lib/vcflib/libvcf.a
-DISORDER=lib/vcflib/smithwaterman/disorder.c
+HTSLIB?=$(HTSLIB_HOME)/lib/libhts.a
 
 all: $(PROGRAM)
 
 .PHONY: all
 
-$(PROGRAM): $(PCH) $(OBJECTS) $(VCFLIB) $(JANSSON)
-	$(CXX) $(CFLAGS) -o $@ $(OBJECTS) $(VCFLIB) $(JANSSON) $(DISORDER) $(LDADDS)
+vcfstatsalive: $(PCH) $(OBJECTS) main.cpp $(JANSSON)
+	$(CXX) $(CFLAGS) $(PCH_FLAGS) -v -o $@ $(OBJECTS) main.cpp $(JANSSON) $(HTSLIB) $(LDADDS)
+
+vcfstats: $(PCH) $(OBJECTS) vcfstats.cpp $(JANSSON)
+	$(CXX) $(CFLAGS) $(PCH_FLAGS) -v -o $@ $(OBJECTS) vcfstats.cpp $(JANSSON) $(HTSLIB) $(LDADDS)
 
 .cpp.o:
 	$(CXX) $(CFLAGS) $(INCLUDES) $(PCH_FLAGS) -c $< -o $@
@@ -36,14 +44,12 @@ $(JANSSON):
 	@if [ ! -d lib/jansson-2.6 ]; then cd lib; curl -o - http://www.digip.org/jansson/releases/jansson-2.6.tar.gz | tar -xzf - ; fi
 	@cd lib/jansson-2.6; ./configure --disable-shared --enable-static; make; cd ../..
 
-$(VCFLIB):
-	make -C lib/vcflib libvcf.a
-
 clean:
 	rm -rf $(OBJECTS) $(PROGRAM) $(PCH) *.dSYM
 
 clean-dep:
-	make -C lib/vcflib clean
 	make -C lib/jansson-2.6 clean
+	make -C lib/htslib clean
+
 
 .PHONY: clean

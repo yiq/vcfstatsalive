@@ -16,6 +16,8 @@ namespace VcfStatsAlive {
 		VT_SNP = 0,
 		VT_INS,
 		VT_DEL,
+        VT_MNP,
+        VT_SV,
 		VT_OTHER,
 		VT_SIZE
 	} VariantTypeT;
@@ -43,17 +45,16 @@ namespace VcfStatsAlive {
 			virtual void processVariantImpl(bcf_hdr_t* hdr, bcf1_t* var) override;
 			virtual void appendJsonImpl(json_t * jsonRootObj) override;
 
+            void updateTsTvRatio(bcf1_t* var, int altIndex, bool isSnp);
+            void updateMutationSpectrum(bcf1_t* var, int altIndex, bool isSnp);
+            void updateAlleleFreqHist(bcf_hdr_t* hdr, bcf1_t* var);
+            void updateQualityDist(float qual);
+            void updateVariantTypeDist(bcf1_t* var, int altIndex, int refLength);
+            void updateIndelSizeDist(int refLength, int altLength);
+
 		public:
 			BasicStatsCollector(int qualLower, int qualUpper, bool logScaleAF = false);
 			virtual ~BasicStatsCollector();
-
-		private:
-			void updateTsTvRatio(bcf1_t* var, int altIndex, bool isSnp);
-			void updateMutationSpectrum(bcf1_t* var, int altIndex, bool isSnp);
-			void updateAlleleFreqHist(bcf_hdr_t* hdr, bcf1_t* var);
-			void updateQualityDist(float qual);
-			void updateVariantTypeDist(bcf1_t* var, int altIndex, int refLength);
-			void updateIndelSizeDist(int refLength, int altLength);
 	};
 }
 

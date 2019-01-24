@@ -208,11 +208,17 @@ void BasicStatsCollector::updateVariantTypeDist(bcf1_t* var, int altIndex, int r
 	if(refLength == 1 && altLength == 1) {
 		vt = VT_SNP;
 	}
-	else if (refLength == 1 && altLength > 1) {
+    else if (refLength == altLength) {
+        vt = VT_MNP;
+    }
+    else if (strstr(var->d.allele[altIndex], "<") != nullptr) {
+        vt = VT_SV;
+    }
+	else if (altLength > refLength) {
 		vt = VT_INS;
 		updateIndelSizeDist(refLength, altLength);
 	}
-	else if (refLength > 1 && altLength == 1) {
+	else if (altLength < refLength) {
 		vt = VT_DEL;
 		updateIndelSizeDist(refLength, altLength);
 	}
@@ -315,6 +321,12 @@ void BasicStatsCollector::appendJsonImpl(json_t * jsonRootObj) {
 		switch(vt) {
 			case VT_SNP:
 				label = "SNP";
+				break;
+			case VT_MNP:
+				label = "MNP";
+                break;
+			case VT_SV:
+				label = "SV";
 				break;
 			case VT_INS:
 				label = "INS";
