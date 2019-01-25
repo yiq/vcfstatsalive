@@ -25,6 +25,8 @@ namespace VcfStatsAlive {
 
                 std::set<int> processedGenotypes;
 
+                int observedAltLen = 0;
+
                 for(int altIndex = 0; altIndex < ngt_arr; altIndex++) {
                     int gt = (gt_arr[altIndex] >> 1) - 1;
                     if(gt <= 0) continue; // either missing or reference
@@ -33,10 +35,14 @@ namespace VcfStatsAlive {
                     if(processedGenotypes.find(gt) != processedGenotypes.end())
                         continue;
 
+                    int altLen = strlen(var->d.allele[gt]);
+
                     updateTsTvRatio(var, gt, isSnp);
                     updateMutationSpectrum(var, gt, isSnp);
-                    updateVariantTypeDist(var, gt, refLength);
+                    if(observedAltLen != altLen) updateVariantTypeDist(var, gt, refLength);
+                    
                     processedGenotypes.insert(gt);
+                    observedAltLen = altLen;
                 }
 
                 updateAlleleFreqHist(hdr, var);
