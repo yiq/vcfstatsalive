@@ -4,6 +4,7 @@
 #pragma once
 
 #include "BasicStatsCollector.h"
+#include <set>
 
 namespace VcfStatsAlive {
     class SampleBasicStatsCollector : public BasicStatsCollector {
@@ -22,13 +23,26 @@ namespace VcfStatsAlive {
                 bool isSnp = bcf_is_snp(var);
                 int refLength = strlen(var->d.allele[0]);
 
+                std::set<int> processedGenotypes;
+
+                int observedAltLen = 0;
+
                 for(int altIndex = 0; altIndex < ngt_arr; altIndex++) {
                     int gt = (gt_arr[altIndex] >> 1) - 1;
                     if(gt <= 0) continue; // either missing or reference
 
+                    // skip already processed genotype
+                    if(processedGenotypes.find(gt) != processedGenotypes.end())
+                        continue;
+
+                    int altLen = strlen(var->d.allele[gt]);
+
                     updateTsTvRatio(var, gt, isSnp);
                     updateMutationSpectrum(var, gt, isSnp);
-                    updateVariantTypeDist(var, gt, refLength);
+                    if(observedAltLen != altLen) updateVariantTypeDist(var, gt, refLength);
+                    
+                    processedGenotypes.insert(gt);
+                    observedAltLen = altLen;
                 }
 
                 updateAlleleFreqHist(hdr, var);
