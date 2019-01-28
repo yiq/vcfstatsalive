@@ -16126,7 +16126,6 @@ else
 fi
 
 fi
-
 ## END: Checking libjansson availability ##
 
 ## Checks for headers

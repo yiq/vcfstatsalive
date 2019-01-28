@@ -101,8 +101,6 @@ AS_IF([test "x$with_jansson_static" != x], [AS_IF([test "x$with_jansson_header" 
 ])
 ## END: Checking libjansson availability ##
 
-echo "$CPPFLAGS"
-
 ## Checks for headers
 AC_CHECK_HEADERS([htslib/hts.h htslib/vcf.h htslib/kstring.h htslib/kseq.h], [], [AC_MSG_ERROR([Could not find htslib header files])])
 AC_CHECK_HEADER([jansson.h], [], [AC_MSG_ERROR([Could not find jansson header files])])
