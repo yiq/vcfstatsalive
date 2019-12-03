@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
 	qualHistLowerVal = 1;
 	qualHistUpperVal = 200;
 	bool logScaleAF = false;
-	bool batch = true;
+	bool batch = false;
 
 	int option_index = 0;
 
